@@ -23,6 +23,7 @@ std::string readFileToString(const std::string &filename)
     // Return the string containing the file content
     return buffer.str();
 }
+
 static unsigned int CompileShader(unsigned int type, const string &source)
 {
     unsigned int id = glCreateShader(type);
@@ -38,14 +39,15 @@ static unsigned int CompileShader(unsigned int type, const string &source)
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
         char *message = (char *)alloca(length * sizeof(char));
         glGetShaderInfoLog(id, length, &length, message);
-        cout << "Failed to compile" << endl;
+        cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << endl;
         cout << message << "\n";
         glDeleteShader(id);
         return 0;
     }
     return id;
 }
-static unsigned int CreateShader(string &vertexShader, string &fragmentShader)
+
+static unsigned int CreateShader(const string &vertexShader, const string &fragmentShader)
 {
     unsigned int program = glCreateProgram();
     unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
@@ -58,12 +60,24 @@ static unsigned int CreateShader(string &vertexShader, string &fragmentShader)
 
     glDeleteShader(vs);
     glDeleteShader(fs);
+
+    // Check for linking errors
+    int success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+    }
+
     return program;
 }
+
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
+
 void processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -86,10 +100,11 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow *window;
-    window = glfwCreateWindow(2560, 1600, "Aarav", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Aarav", NULL, NULL);
     if (window == NULL)
     {
         cout << "Failed to open GLFW window" << endl;
+        glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
@@ -100,21 +115,35 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, 2560, 1600);
+    glViewport(0, 0, 800, 600);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.0f, 0.5f};
 
+    // Generate and bind a Vertex Array Object (VAO)
+    GLuint vao;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // Generate and bind a Vertex Buffer Object (VBO)
     GLuint buffer;
     glGenBuffers(1, &buffer);
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
 
+    // Set up vertex attribute pointers
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 
-    string vertexshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/shaders/vs.txt");
-    string fragmentshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/shaders/fs.txt");
+    // Load shaders from files
+    string vertexshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/res/shaders/vs.txt");
+    string fragmentshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/res/shaders/fs.txt");
+    if (vertexshader.empty() || fragmentshader.empty()) {
+        std::cerr << "Failed to load shaders!" << std::endl;
+        return -1;
+    }
+
+    // Create and use the shader program
     unsigned int shader = CreateShader(vertexshader, fragmentshader);
     glUseProgram(shader);
 
@@ -123,10 +152,19 @@ int main()
         processInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        // Bind the VAO and draw the triangle
+        glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    // Clean up
+    glDeleteProgram(shader);
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &buffer);
 
     glfwTerminate();
     return 0;
