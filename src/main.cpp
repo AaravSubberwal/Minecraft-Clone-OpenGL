@@ -1,8 +1,28 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 using namespace std;
+
+std::string readFileToString(const std::string &filename)
+{
+    std::ifstream file(filename);
+
+    if (!file)
+    {
+        std::cerr << "Error: Could not open the file: " << filename << std::endl;
+        return "";
+    }
+
+    // Use stringstream to accumulate the file content
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+
+    // Return the string containing the file content
+    return buffer.str();
+}
 static unsigned int CompileShader(unsigned int type, const string &source)
 {
     unsigned int id = glCreateShader(type);
@@ -51,6 +71,7 @@ void processInput(GLFWwindow *window)
         glfwSetWindowShouldClose(window, true);
     }
 }
+
 int main()
 {
     if (!glfwInit())
@@ -82,7 +103,7 @@ int main()
     glViewport(0, 0, 2560, 1600);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    float positions[] = {-0.5f, -0.5f, 0.0f, 0.5f, 0.5f, -0.5f};
+    float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.0f, 0.5f};
 
     GLuint buffer;
     glGenBuffers(1, &buffer);
@@ -92,10 +113,11 @@ int main()
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 
-    string vertexshader = 
-    "#version 330 core";
-    string fragmentshader;
+    string vertexshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/shaders/vs.txt");
+    string fragmentshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/shaders/fs.txt");
     unsigned int shader = CreateShader(vertexshader, fragmentshader);
+    glUseProgram(shader);
+
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
