@@ -1,10 +1,10 @@
 #include <iostream>
 #include <string>
 #include <utility>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <cstdio>
 #include <cstring>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 using namespace std;
 
 // Function to read vertex and fragment shaders from a single file (C-style)
@@ -87,10 +87,12 @@ static unsigned int CreateShader(const string &vertexShader, const string &fragm
     // Check for linking errors
     int success;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
+    if (!success)
+    {
         char infoLog[512];
         glGetProgramInfoLog(program, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+                  << infoLog << std::endl;
     }
 
     return program;
@@ -141,7 +143,9 @@ int main()
     glViewport(0, 0, 800, 600);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.0f, 0.5f};
+    float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f};
+    unsigned int indices[] = {
+        0, 1, 2, 2, 3, 0};
 
     // Generate and bind a Vertex Array Object (VAO)
     GLuint vao;
@@ -154,13 +158,19 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
 
+    GLuint ibo;
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
     // Set up vertex attribute pointers
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
 
     // Load shaders from a single file
     auto [vertexShader, fragmentShader] = readShadersFromFile("C:/Users/Aarav/Desktop/Projects/Minecraft/res/shaders.glsl");
-    if (vertexShader.empty() || fragmentShader.empty()) {
+    if (vertexShader.empty() || fragmentShader.empty())
+    {
         std::cerr << "Failed to load shaders!" << std::endl;
         return -1;
     }
@@ -177,7 +187,7 @@ int main()
 
         // Bind the VAO and draw the triangle
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
