@@ -1,27 +1,50 @@
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <string>
+#include <utility>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <cstdio>
+#include <cstring>
 using namespace std;
 
-std::string readFileToString(const std::string &filename)
+// Function to read vertex and fragment shaders from a single file (C-style)
+std::pair<std::string, std::string> readShadersFromFile(const std::string &filename)
 {
-    std::ifstream file(filename);
-
+    FILE *file = fopen(filename.c_str(), "rb");
     if (!file)
     {
         std::cerr << "Error: Could not open the file: " << filename << std::endl;
-        return "";
+        return {"", ""};
     }
 
-    // Use stringstream to accumulate the file content
-    std::stringstream buffer;
-    buffer << file.rdbuf();
+    fseek(file, 0, SEEK_END);
+    long fileSize = ftell(file);
+    fseek(file, 0, SEEK_SET);
 
-    // Return the string containing the file content
-    return buffer.str();
+    char *buffer = new char[fileSize + 1];
+    fread(buffer, 1, fileSize, file);
+    buffer[fileSize] = '\0';
+    fclose(file);
+
+    std::string fileContent(buffer);
+    delete[] buffer;
+
+    size_t vertexStart = fileContent.find("#vertex");
+    size_t fragmentStart = fileContent.find("#fragment");
+
+    if (vertexStart == std::string::npos || fragmentStart == std::string::npos)
+    {
+        std::cerr << "Error: Shader file is missing #vertex or #fragment delimiter." << std::endl;
+        return {"", ""};
+    }
+
+    vertexStart += strlen("#vertex\n");
+    std::string vertexShader = fileContent.substr(vertexStart, fragmentStart - vertexStart);
+
+    fragmentStart += strlen("#fragment\n");
+    std::string fragmentShader = fileContent.substr(fragmentStart);
+
+    return {vertexShader, fragmentShader};
 }
 
 static unsigned int CompileShader(unsigned int type, const string &source)
@@ -135,16 +158,15 @@ int main()
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 
-    // Load shaders from files
-    string vertexshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/res/shaders/vs.txt");
-    string fragmentshader = readFileToString("C:/Users/Aarav/Desktop/Projects/Minecraft/res/shaders/fs.txt");
-    if (vertexshader.empty() || fragmentshader.empty()) {
+    // Load shaders from a single file
+    auto [vertexShader, fragmentShader] = readShadersFromFile("C:/Users/Aarav/Desktop/Projects/Minecraft/res/shaders.glsl");
+    if (vertexShader.empty() || fragmentShader.empty()) {
         std::cerr << "Failed to load shaders!" << std::endl;
         return -1;
     }
 
     // Create and use the shader program
-    unsigned int shader = CreateShader(vertexshader, fragmentshader);
+    unsigned int shader = CreateShader(vertexShader, fragmentShader);
     glUseProgram(shader);
 
     while (!glfwWindowShouldClose(window))
