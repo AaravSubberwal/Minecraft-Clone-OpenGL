@@ -62,7 +62,7 @@ static unsigned int CompileShader(unsigned int type, const string &source)
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
         char *message = (char *)alloca(length * sizeof(char));
         glGetShaderInfoLog(id, length, &length, message);
-        cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << endl;
+        cout << "Failed to compile shader:" << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << endl;
         cout << message << "\n";
         glDeleteShader(id);
         return 0;
@@ -176,8 +176,8 @@ int main()
     }
 
     // Create and use the shader program
-    unsigned int shader = CreateShader(vertexShader, fragmentShader);
-    glUseProgram(shader);
+    unsigned int shader_program = CreateShader(vertexShader, fragmentShader);
+    glUseProgram(shader_program);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -187,14 +187,14 @@ int main()
 
         // Bind the VAO and draw the triangle
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES,6,GL_UNSIGNED_INT,nullptr);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     // Clean up
-    glDeleteProgram(shader);
+    glDeleteProgram(shader_program);
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &buffer);
 

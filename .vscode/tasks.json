@@ -14,7 +14,7 @@
                 "${workspaceFolder}/src/glad.c",
                 "-lglfw3dll",
                 "-o",
-                "${workspaceFolder}/cutable.exe"
+                "${workspaceFolder}/bin/cutable.exe"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
