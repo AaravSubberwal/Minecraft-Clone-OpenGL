@@ -3,8 +3,12 @@
 #include <utility>
 #include <cstdio>
 #include <cstring>
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+
+#include "IndexBuffer.h"
+#include "VertexBuffer.h"
 using namespace std;
 
 // Function to read vertex and fragment shaders from a single file (C-style)
@@ -133,6 +137,7 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -148,35 +153,38 @@ int main()
         0, 1, 2, 2, 3, 0};
 
     // Generate and bind a Vertex Array Object (VAO)
-    GLuint vao;
+    unsigned int vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     // Generate and bind a Vertex Buffer Object (VBO)
-    GLuint buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
-
-    GLuint ibo;
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    VertexBuffer vb(positions, sizeof(positions));
 
     // Set up vertex attribute pointers
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
 
+    IndexBuffer ib(indices, 6);
+
     // Load shaders from a single file
-    auto [vertexShader, fragmentShader] = readShadersFromFile("C:/Users/Aarav/Desktop/Projects/Minecraft/res/shaders.glsl");
+    auto [vertexShader, fragmentShader] = readShadersFromFile("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/shaders.glsl");
     if (vertexShader.empty() || fragmentShader.empty())
     {
         std::cerr << "Failed to load shaders!" << std::endl;
         return -1;
     }
-
+    std::cout << "Vertex Shader:\n"
+              << vertexShader << "\n";
+    std::cout << "Fragment Shader:\n"
+              << fragmentShader << "\n";
+    
     // Create and use the shader program
     unsigned int shader_program = CreateShader(vertexShader, fragmentShader);
+    if (shader_program == 0)
+    {
+        std::cerr << "Failed to create shader program!" << std::endl;
+        return -1;
+    }
     glUseProgram(shader_program);
 
     while (!glfwWindowShouldClose(window))
@@ -187,7 +195,8 @@ int main()
 
         // Bind the VAO and draw the triangle
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        ib.bind();
+        glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -196,7 +205,6 @@ int main()
     // Clean up
     glDeleteProgram(shader_program);
     glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &buffer);
 
     glfwTerminate();
     return 0;
