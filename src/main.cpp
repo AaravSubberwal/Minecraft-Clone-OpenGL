@@ -177,7 +177,6 @@ int main()
               << vertexShader << "\n";
     std::cout << "Fragment Shader:\n"
               << fragmentShader << "\n";
-    
     // Create and use the shader program
     unsigned int shader_program = CreateShader(vertexShader, fragmentShader);
     if (shader_program == 0)
@@ -196,7 +195,7 @@ int main()
         // Bind the VAO and draw the triangle
         glBindVertexArray(vao);
         ib.bind();
-        glDrawElements(GL_TRIANGLES, ib.GetCount(), GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, ib.getCount(), GL_UNSIGNED_INT, nullptr);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
