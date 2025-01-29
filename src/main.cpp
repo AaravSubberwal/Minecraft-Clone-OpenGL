@@ -1,3 +1,11 @@
+/**************************************************************************************************************************** 
+Author: Aarav Subberwal
+Date: 
+
+Cloning Minecraft using OpenGL 4.6, GLAD, GLFW and C++
+Work In Progress
+currently no way to build except using vscode. I'll add CMake later.
+******************************************************************************************************************************/
 #include <iostream>
 #include <string>
 #include <utility>
@@ -11,7 +19,6 @@
 #include "VertexBuffer.h"
 using namespace std;
 
-// Function to read vertex and fragment shaders from a single file (C-style)
 std::pair<std::string, std::string> readShadersFromFile(const std::string &filename)
 {
     FILE *file = fopen(filename.c_str(), "rb");
@@ -147,64 +154,58 @@ int main()
 
     glViewport(0, 0, 800, 600);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
-    float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f};
-    unsigned int indices[] = {
-        0, 1, 2, 2, 3, 0};
-
-    // Generate and bind a Vertex Array Object (VAO)
-    unsigned int vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Generate and bind a Vertex Buffer Object (VBO)
-    VertexBuffer vb(positions, sizeof(positions));
-
-    // Set up vertex attribute pointers
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-
-    IndexBuffer ib(indices, 6);
-
-    // Load shaders from a single file
-    auto [vertexShader, fragmentShader] = readShadersFromFile("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/shaders.glsl");
-    if (vertexShader.empty() || fragmentShader.empty())
     {
-        std::cerr << "Failed to load shaders!" << std::endl;
-        return -1;
-    }
-    std::cout << "Vertex Shader:\n"
-              << vertexShader << "\n";
-    std::cout << "Fragment Shader:\n"
-              << fragmentShader << "\n";
-    // Create and use the shader program
-    unsigned int shader_program = CreateShader(vertexShader, fragmentShader);
-    if (shader_program == 0)
-    {
-        std::cerr << "Failed to create shader program!" << std::endl;
-        return -1;
-    }
-    glUseProgram(shader_program);
+        float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f};
+        unsigned int indices[] = {
+            0, 1, 2, 2, 3, 0};
 
-    while (!glfwWindowShouldClose(window))
-    {
-        processInput(window);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        // Bind the VAO and draw the triangle
+        unsigned int vao;
+        glGenVertexArrays(1, &vao);
         glBindVertexArray(vao);
-        ib.bind();
-        glDrawElements(GL_TRIANGLES, ib.getCount(), GL_UNSIGNED_INT, nullptr);
 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        VertexBuffer vb(positions, sizeof(positions));
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+
+        IndexBuffer ib(indices, 6);
+
+        auto [vertexShader, fragmentShader] = readShadersFromFile("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/shaders.glsl");
+        if (vertexShader.empty() || fragmentShader.empty())
+        {
+            std::cerr << "Failed to load shaders!" << std::endl;
+            return -1;
+        }
+        // std::cout << "Vertex Shader:\n"
+        //           << vertexShader << "\n";
+        // std::cout << "Fragment Shader:\n"
+        //           << fragmentShader << "\n";
+
+        unsigned int shader_program = CreateShader(vertexShader, fragmentShader);
+        if (shader_program == 0)
+        {
+            std::cerr << "Failed to create shader program!" << std::endl;
+            return -1;
+        }
+        glUseProgram(shader_program);
+
+        while (!glfwWindowShouldClose(window))
+        {
+            processInput(window);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+
+            glBindVertexArray(vao);
+            ib.bind();
+            glDrawElements(GL_TRIANGLES, ib.getCount(), GL_UNSIGNED_INT, nullptr);
+
+            glfwSwapBuffers(window);
+            glfwPollEvents();
+        }
+
+        glDeleteProgram(shader_program);
+        glDeleteVertexArrays(1, &vao);
     }
-
-    // Clean up
-    glDeleteProgram(shader_program);
-    glDeleteVertexArrays(1, &vao);
-
     glfwTerminate();
     return 0;
 }
