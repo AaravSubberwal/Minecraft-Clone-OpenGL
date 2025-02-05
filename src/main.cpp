@@ -1,6 +1,6 @@
-/**************************************************************************************************************************** 
+/****************************************************************************************************************************
 Author: Aarav Subberwal
-Date: 
+Date:
 
 Cloning Minecraft using OpenGL 4.6, GLAD, GLFW and C++
 Work In Progress
@@ -18,97 +18,9 @@ currently no way to build except using vscode. I'll add CMake later.
 #include "IndexBuffer.h"
 #include "VertexBuffer.h"
 #include "VertexArray.h"
+#include "shader.h"
+
 using namespace std;
-
-std::pair<std::string, std::string> readShadersFromFile(const std::string &filename)
-{
-    FILE *file = fopen(filename.c_str(), "rb");
-    if (!file)
-    {
-        std::cerr << "Error: Could not open the file: " << filename << std::endl;
-        return {"", ""};
-    }
-
-    fseek(file, 0, SEEK_END);
-    long fileSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    char *buffer = new char[fileSize + 1];
-    fread(buffer, 1, fileSize, file);
-    buffer[fileSize] = '\0';
-    fclose(file);
-
-    std::string fileContent(buffer);
-    delete[] buffer;
-
-    size_t vertexStart = fileContent.find("#vertex");
-    size_t fragmentStart = fileContent.find("#fragment");
-
-    if (vertexStart == std::string::npos || fragmentStart == std::string::npos)
-    {
-        std::cerr << "Error: Shader file is missing #vertex or #fragment delimiter." << std::endl;
-        return {"", ""};
-    }
-
-    vertexStart += strlen("#vertex\n");
-    std::string vertexShader = fileContent.substr(vertexStart, fragmentStart - vertexStart);
-
-    fragmentStart += strlen("#fragment\n");
-    std::string fragmentShader = fileContent.substr(fragmentStart);
-
-    return {vertexShader, fragmentShader};
-}
-
-static unsigned int CompileShader(unsigned int type, const string &source)
-{
-    unsigned int id = glCreateShader(type);
-    const char *src = source.c_str();
-    glShaderSource(id, 1, &src, nullptr);
-    glCompileShader(id);
-
-    int result;
-    glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-    if (result == GL_FALSE)
-    {
-        int length;
-        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-        char *message = (char *)alloca(length * sizeof(char));
-        glGetShaderInfoLog(id, length, &length, message);
-        cout << "Failed to compile shader:" << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << endl;
-        cout << message << "\n";
-        glDeleteShader(id);
-        return 0;
-    }
-    return id;
-}
-
-static unsigned int CreateShader(const string &vertexShader, const string &fragmentShader)
-{
-    unsigned int program = glCreateProgram();
-    unsigned int vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
-    unsigned int fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
-
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-    glValidateProgram(program);
-
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-
-    // Check for linking errors
-    int success;
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        char infoLog[512];
-        glGetProgramInfoLog(program, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-                  << infoLog << std::endl;
-    }
-
-    return program;
-}
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height)
 {
@@ -155,38 +67,21 @@ int main()
 
     glViewport(0, 0, 800, 600);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    
+
     {
         float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f};
         unsigned int indices[] = {
             0, 1, 2, 2, 3, 0};
-        
+
         VertexArray va;
-        VertexBuffer vb(positions, sizeof(positions),GL_STATIC_DRAW);
+        VertexBuffer vb(positions, sizeof(positions), GL_STATIC_DRAW);
         VertexBufferLayout layout;
         layout.push<float>(2);
-        va.addBuffer(vb,layout);
-
+        va.addBuffer(vb, layout);
         IndexBuffer ib(indices, 6);
 
-        auto [vertexShader, fragmentShader] = readShadersFromFile("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/shaders.glsl");
-        if (vertexShader.empty() || fragmentShader.empty())
-        {
-            std::cerr << "Failed to load shaders!" << std::endl;
-            return -1;
-        }
-        // std::cout << "Vertex Shader:\n"
-        //           << vertexShader << "\n";
-        // std::cout << "Fragment Shader:\n"
-        //           << fragmentShader << "\n";
-
-        unsigned int shader_program = CreateShader(vertexShader, fragmentShader);
-        if (shader_program == 0)
-        {
-            std::cerr << "Failed to create shader program!" << std::endl;
-            return -1;
-        }
-        glUseProgram(shader_program);
+        Shader myshader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl","C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
+        myshader.bind();
 
         while (!glfwWindowShouldClose(window))
         {
@@ -201,8 +96,6 @@ int main()
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
-
-        glDeleteProgram(shader_program);
     }
     glfwTerminate();
     return 0;

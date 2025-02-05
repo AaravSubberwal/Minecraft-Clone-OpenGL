@@ -15,6 +15,7 @@
                 "${workspaceFolder}/src/VertexBuffer.cpp",
                 "${workspaceFolder}/src/VertexArray.cpp",
                 "${workspaceFolder}/src/IndexBuffer.cpp",
+                "${workspaceFolder}/src/shader.cpp",
                 "${workspaceFolder}/src/glad.c",
                 "-lglfw3dll",
                 "-o",
