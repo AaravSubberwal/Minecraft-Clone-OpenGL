@@ -15,10 +15,7 @@ currently no way to build except using vscode. I'll add CMake later.
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "IndexBuffer.h"
-#include "VertexBuffer.h"
-#include "VertexArray.h"
-#include "shader.h"
+#include "Renderer.h"
 
 using namespace std;
 
@@ -82,16 +79,16 @@ int main()
 
         Shader myshader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl","C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
         myshader.bind();
+        Renderer renderer;
 
         while (!glfwWindowShouldClose(window))
         {
             processInput(window);
-            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-
+            renderer.backColor(0.2f, 0.3f, 0.3f, 1.0f);
+            
             va.bind();
             ib.bind();
-            glDrawElements(GL_TRIANGLES, ib.getCount(), GL_UNSIGNED_INT, nullptr);
+            renderer.draw(ib,va,myshader);
 
             glfwSwapBuffers(window);
             glfwPollEvents();
