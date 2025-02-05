@@ -1,11 +1,15 @@
 #pragma once
 #include <vector>
+#include <glad/glad.h>
+
 class VertexBuffer
 {
 public:
-    VertexBuffer(const void *data, unsigned int size);
+    VertexBuffer(const void *data, unsigned int size, unsigned int hint);
     ~VertexBuffer();
+
     void bind() const;
+
     void unbind() const;
 
 private:
@@ -17,7 +21,21 @@ class VertexBufferElement
 public:
     unsigned int type;
     unsigned int count;
-    bool normalized;
+    unsigned char normalized;
+
+    static unsigned int getSizeofType(unsigned int type)
+    {
+        switch (type)
+        {
+        case GL_FLOAT:
+            return 4;
+        case GL_UNSIGNED_INT:
+            return 4;
+        case GL_UNSIGNED_BYTE:
+            return 1;
+        }
+        return 0;
+    }
 };
 
 class VertexBufferLayout
@@ -30,26 +48,15 @@ public:
     VertexBufferLayout() : stride(0) {}
     ~VertexBufferLayout() = default;
 
-    // Generic template definition (will fail for unsupported types)
     template <typename T>
-    void push(int count)
-    {
-        static_assert(sizeof(T) == 0, "Unsupported type for VertexBufferLayout::push");
-    }
+    void push(unsigned int count);
 
-    template <>
-    void push<float>(int count)
-    {
-        Elements.push_back({GL_FLOAT, static_cast<unsigned int>(count), false});
-        stride += count * sizeof(GLfloat);
-    }
-
-    template <>
-    void push<unsigned int>(int count)
-    {
-        Elements.push_back({GL_UNSIGNED_INT, static_cast<unsigned int>(count), false});
-        stride += count * sizeof(GLuint);
-    }
-    const std::vector<VertexBufferElement>& getElements() const { return Elements; }
+    const std::vector<VertexBufferElement> &getElements() const { return Elements; }
     unsigned int getStride() const { return stride; }
+
+    void clear()
+    {
+        Elements.clear();
+        stride = 0;
+    }
 };

@@ -17,6 +17,7 @@ currently no way to build except using vscode. I'll add CMake later.
 
 #include "IndexBuffer.h"
 #include "VertexBuffer.h"
+#include "VertexArray.h"
 using namespace std;
 
 std::pair<std::string, std::string> readShadersFromFile(const std::string &filename)
@@ -154,19 +155,17 @@ int main()
 
     glViewport(0, 0, 800, 600);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    
     {
         float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f};
         unsigned int indices[] = {
             0, 1, 2, 2, 3, 0};
-
-        unsigned int vao;
-        glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
-
-        VertexBuffer vb(positions, sizeof(positions));
-
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+        
+        VertexArray va;
+        VertexBuffer vb(positions, sizeof(positions),GL_STATIC_DRAW);
+        VertexBufferLayout layout;
+        layout.push<float>(2);
+        va.addBuffer(vb,layout);
 
         IndexBuffer ib(indices, 6);
 
@@ -195,7 +194,7 @@ int main()
             glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
 
-            glBindVertexArray(vao);
+            va.bind();
             ib.bind();
             glDrawElements(GL_TRIANGLES, ib.getCount(), GL_UNSIGNED_INT, nullptr);
 
@@ -204,7 +203,6 @@ int main()
         }
 
         glDeleteProgram(shader_program);
-        glDeleteVertexArrays(1, &vao);
     }
     glfwTerminate();
     return 0;
