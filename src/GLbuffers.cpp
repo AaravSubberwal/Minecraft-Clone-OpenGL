@@ -38,13 +38,13 @@ void VertexArray::addBuffer(const VertexBuffer &vb, const VertexBufferLayout &la
     bind();
     vb.bind();
     const auto &elements = layout.getElements();
-    unsigned int offset=0;
+    unsigned int offset = 0;
     for (unsigned int i = 0; i < elements.size(); i++)
     {
         const auto &element = elements[i];
         glEnableVertexAttribArray(i);
-        glVertexAttribPointer(i, element.count, element.type, element.normalized, layout.getStride(), (const void*)(intptr_t)offset);
-        offset+=element.count*VertexBufferElement::getSizeofType(element.type);
+        glVertexAttribPointer(i, element.count, element.type, element.normalized, layout.getStride(), (const void *)(intptr_t)offset);
+        offset += element.count * VertexBufferElement::getSizeofType(element.type);
     }
 }
 
@@ -63,7 +63,7 @@ unsigned int VertexArray::getID() const
     return ID;
 }
 
-VertexBuffer::VertexBuffer(const void *data, unsigned int size,unsigned int hint)
+VertexBuffer::VertexBuffer(const void *data, unsigned int size, unsigned int hint)
 {
     glGenBuffers(1, &ID);
     glBindBuffer(GL_ARRAY_BUFFER, ID);

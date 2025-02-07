@@ -1,7 +1,8 @@
 #version 460 core
-layout(location=0) out vec4 color;
+in vec4 ourColor;       // Input color from vertex shader
+out vec4 FragColor;     // Output color
 
 void main()
 {
-    color = vec4(1.0, 1.0, 0.0, 1.0); // Red color
+    FragColor = ourColor;
 }

@@ -1,5 +1,3 @@
-#include <glad/glad.h>
-
 #include "GLbuffers.h"
 #include "shader.h"
 

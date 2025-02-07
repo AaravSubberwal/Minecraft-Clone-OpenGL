@@ -8,12 +8,12 @@ currently no way to build except using vscode. I'll add CMake later.
 ******************************************************************************************************************************/
 #include <iostream>
 #include <string>
-#include <utility>
-#include <cstdio>
-#include <cstring>
+#include <cmath>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "Renderer.h"
 
@@ -39,7 +39,7 @@ int main()
         cout << "Failed to initialize GLFW" << endl;
         return -1;
     }
-
+    
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -66,29 +66,35 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     {
-        float positions[] = {-0.5f, -0.5f, 0.5f, -0.5f, 0.5f, 0.5f, -0.5f, 0.5f};
+        float vertices[] = {
+            // Position (x, y, z)    Color (r, g, b, a)
+            -0.5f, -0.5f, 0.0f,     1.0f, 0.0f, 0.0f, 1.0f, // Vertex 1 (Red)
+             0.5f, -0.5f, 0.0f,     0.0f, 1.0f, 0.0f, 1.0f, // Vertex 2 (Green)
+             0.0f,  0.5f, 0.0f,     0.0f, 0.0f, 1.0f, 1.0f  // Vertex 3 (Blue)
+        };
         unsigned int indices[] = {
-            0, 1, 2, 2, 3, 0};
+            0, 1, 2 };
 
         VertexArray va;
-        VertexBuffer vb(positions, sizeof(positions), GL_STATIC_DRAW);
+        VertexBuffer vb(vertices, sizeof(vertices), GL_STATIC_DRAW);
         VertexBufferLayout layout;
-        layout.push<float>(2);
+        layout.push<float>(3);
+        layout.push<float>(4);
         va.addBuffer(vb, layout);
-        IndexBuffer ib(indices, 6);
+        IndexBuffer ib(indices, 3);
 
-        Shader myshader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl","C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
+        // glm::mat4 proj = glm::ortho()
+        Shader myshader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
         myshader.bind();
+        myshader.setUniform4f("u_color", 0.0, 1.0, 0.0, 1.0);
         Renderer renderer;
 
         while (!glfwWindowShouldClose(window))
         {
             processInput(window);
-            renderer.backColor(0.2f, 0.3f, 0.3f, 1.0f);
-            
-            va.bind();
-            ib.bind();
-            renderer.draw(ib,va,myshader);
+            renderer.backColor(0.0f, 0.0f, 1.0f, 1.0f);
+
+            renderer.draw(ib, va, myshader);
 
             glfwSwapBuffers(window);
             glfwPollEvents();
