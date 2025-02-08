@@ -1,8 +1,10 @@
 #version 460 core
-in vec4 ourColor;       // Input color from vertex shader
-out vec4 FragColor;     // Output color
+layout(location = 0) out vec4 color;
+
+in vec2 texCoords;
+uniform sampler2D u_grass;
 
 void main()
 {
-    FragColor = ourColor;
+    color = texture(u_grass, texCoords);
 }

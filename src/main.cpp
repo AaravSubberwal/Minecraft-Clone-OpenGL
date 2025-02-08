@@ -16,6 +16,7 @@ currently no way to build except using vscode. I'll add CMake later.
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Renderer.h"
+#include "textures.h"
 
 using namespace std;
 
@@ -39,14 +40,14 @@ int main()
         cout << "Failed to initialize GLFW" << endl;
         return -1;
     }
-    
+
     glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     GLFWwindow *window;
-    window = glfwCreateWindow(800, 600, "Aarav", NULL, NULL);
+    window = glfwCreateWindow(800, 800, "Aarav", NULL, NULL);
     if (window == NULL)
     {
         cout << "Failed to open GLFW window" << endl;
@@ -62,37 +63,44 @@ int main()
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, 800, 800);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
+    enableDebugging();
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     {
         float vertices[] = {
-            // Position (x, y, z)    Color (r, g, b, a)
-            -0.5f, -0.5f, 0.0f,     1.0f, 0.0f, 0.0f, 1.0f, // Vertex 1 (Red)
-             0.5f, -0.5f, 0.0f,     0.0f, 1.0f, 0.0f, 1.0f, // Vertex 2 (Green)
-             0.0f,  0.5f, 0.0f,     0.0f, 0.0f, 1.0f, 1.0f  // Vertex 3 (Blue)
+            //  x      y      z      r     g     b     a
+            -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // Bottom-left
+            0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // Bottom-right
+            0.5f, 0.5f, 0.0f, 1.0f, 1.0f,   // Top-right
+            -0.5f, 0.5f, 0.0f, 0.0f, 1.0f,  // Top-left
         };
+
         unsigned int indices[] = {
-            0, 1, 2 };
+            0, 1, 2, // First triangle
+            2, 3, 0  // Second triangle
+        };
 
         VertexArray va;
         VertexBuffer vb(vertices, sizeof(vertices), GL_STATIC_DRAW);
         VertexBufferLayout layout;
         layout.push<float>(3);
-        layout.push<float>(4);
+        layout.push<float>(2);
         va.addBuffer(vb, layout);
-        IndexBuffer ib(indices, 3);
+        IndexBuffer ib(indices, 6);
 
         // glm::mat4 proj = glm::ortho()
         Shader myshader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
-        myshader.bind();
-        myshader.setUniform4f("u_color", 0.0, 1.0, 0.0, 1.0);
         Renderer renderer;
+
+        Texture grass("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/grass.jpeg");
+        grass.bind(0);
+        myshader.setUniform1i("u_grass", 0);
 
         while (!glfwWindowShouldClose(window))
         {
             processInput(window);
-            renderer.backColor(0.0f, 0.0f, 1.0f, 1.0f);
 
             renderer.draw(ib, va, myshader);
 
