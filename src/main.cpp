@@ -12,8 +12,6 @@ currently no way to build except using vscode. I'll add CMake later.
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 #include "Renderer.h"
 #include "textures.h"
@@ -70,7 +68,6 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     {
         float vertices[] = {
-            //  x      y      z      r     g     b     a
             -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, // Bottom-left
             0.5f, -0.5f, 0.0f, 1.0f, 0.0f,  // Bottom-right
             0.5f, 0.5f, 0.0f, 1.0f, 1.0f,   // Top-right
@@ -100,7 +97,14 @@ int main()
 
         while (!glfwWindowShouldClose(window))
         {
+            renderer.clear();
             processInput(window);
+
+            glm::mat4 model = glm::mat4(1.0f);
+            float angle = (float)glfwGetTime();                             // Rotate over time
+            model = glm::rotate(model, angle, glm::vec3(0.0f, 0.0f, 1.0f)); // Rotate around Z-axis
+
+            myshader.setUniformMatrix4fv("u_model", model, GL_FALSE);
 
             renderer.draw(ib, va, myshader);
 

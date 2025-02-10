@@ -3,7 +3,6 @@
 #include <sstream>
 
 #include "shader.h"
-#include <glad/glad.h>
 
 using namespace std;
 
@@ -98,17 +97,24 @@ unsigned int Shader::compileShader(unsigned int type, const std::string &source)
 
 void Shader::setUniform4f(const std::string &name, float v0, float v1, float v2, float v3)
 {
+    bind();
     glUniform4f(getUniformLocations(name), v0, v1, v2, v3);
 }
 
-
 void Shader::setUniform1i(const std::string &name, int value)
 {
+    bind();
     glUniform1i(getUniformLocations(name), value);
+}
 
+void Shader::setUniformMatrix4fv(const std::string &name, glm::mat4 mat,  bool transpose)
+{
+    bind();
+    glUniformMatrix4fv(getUniformLocations(name), 1, transpose, glm::value_ptr(mat));
 }
 
 unsigned int Shader::getUniformLocations(const std::string &name)
 {
+    bind();
     return glGetUniformLocation(ID, name.c_str());
 }
