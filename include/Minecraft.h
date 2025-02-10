@@ -2,17 +2,28 @@
 #include <unordered_map>
 #include <string>
 #include <iostream>
+#include <glad/glad.h>
+
+#include "textures.h"
+#include "Renderer.h"
+#include "shader.h"
+
 
 class Block
 {
 private:
-    static float vertices[96];
-    static const unsigned int indices[36];
-    static std::unordered_map<std::string, unsigned int> ID_Block_Map;
+    static float vertices[];
+    static const unsigned int indices[];
+    static std::unordered_map<std::string, uint8_t> ID_Block_Map;
 
-    float x, y, z;
-    unsigned int ID;
     std::string type;
+    uint8_t ID;
+    static float frontV[];
+    static float frontI[];
+    static float leftV[];
+    static float leftI[];
+    static float rightV[];
+    static float rightI[];
 
 public:
     Block(std::string type);
@@ -33,7 +44,11 @@ public:
 class chunk
 {
 private:
+    float x, y, z;
+    uint8_t blockdata[16][128][16]; // 32KB lfg
 
 public:
-
+    void drawFlat();
 };
+
+
