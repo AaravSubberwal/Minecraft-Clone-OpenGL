@@ -48,6 +48,20 @@
         "xmemory": "cpp",
         "xstring": "cpp",
         "xtr1common": "cpp",
-        "xutility": "cpp"
-    }
+        "xutility": "cpp",
+        "unordered_map": "cpp",
+        "algorithm": "cpp",
+        "cstdarg": "cpp",
+        "fstream": "cpp",
+        "functional": "cpp",
+        "iomanip": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "optional": "cpp",
+        "sstream": "cpp",
+        "vector": "cpp",
+        "xhash": "cpp",
+        "xtree": "cpp"
+    },
+    "cmake.ignoreCMakeListsMissing": true
 }

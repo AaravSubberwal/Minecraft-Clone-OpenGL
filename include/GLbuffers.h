@@ -5,7 +5,7 @@
 class VertexBuffer
 {
 public:
-    VertexBuffer(const void *data, unsigned int size, unsigned int hint);
+    VertexBuffer(const void *data, unsigned int size, unsigned int hint = GL_STATIC_DRAW);
     ~VertexBuffer();
 
     void bind() const;

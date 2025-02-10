@@ -17,7 +17,7 @@ void Renderer::backColor(float v0, float v1, float v2, float v3) const
 
 void Renderer::clear() const
 {
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity,
