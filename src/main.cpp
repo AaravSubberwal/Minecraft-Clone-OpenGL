@@ -215,7 +215,6 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH / (float)WIN_HEIGTH, 0.1f, 100.0f);
 
         glm::mat4 model = glm::mat4(1.0f);
-        float angle;
 
         myshader.setUniformMatrix4fv("u_model", model);
         myshader.setUniformMatrix4fv("u_projection", projection);
