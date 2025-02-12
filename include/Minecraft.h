@@ -17,6 +17,7 @@ private:
     static const std::unordered_map<uint8_t, TextData> IDTexRegistery;
 //i need some sort of a hashmap to ID and what texture goes on what face
     std::string type;
+    uint8_t ID;
 public:
     Block(std::string type);
     ~Block();
@@ -28,16 +29,6 @@ struct TextData
     float UV[48];  //back, front, left, right, bottom, top
 };
 
-class WorldBlock
-{
-private:
-    float x, y, z;
-    unsigned short int light;
-
-public:
-    WorldBlock(std::string type, float x, float y, float z, unsigned short int light = 15);
-    ~WorldBlock();
-};
 
 class chunk
 {
@@ -48,4 +39,5 @@ private:
 public:
     void setFlat();
     void draw();
+    void generateMesh();
 };

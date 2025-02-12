@@ -45,14 +45,13 @@ const std::unordered_map<std::string, uint8_t> Block::NameIDRegistery = {
     {"grass block", 1},
     {"stone", 2},
     {"dirt", 3},
-    {"cobblestone", 4}
-};
+    {"cobblestone", 4}};
 
 const std::unordered_map<uint8_t, TextData> IDTexRegistery = {
-    {1,{}}, // grass_block
-    {2,{}}, // stone
-    {3,{}}, // dirt
-    {4,{}}  // cobblestone
+    {1, {}}, // grass_block
+    {2, {}}, // stone
+    {3, {}}, // dirt
+    {4, {}}  // cobblestone
 };
 Block::Block(std::string type)
 {
@@ -103,4 +102,21 @@ void chunk::setFlat()
 void chunk::draw()
 { // send the vertices for a single cube to the gpu. every other cube must be drawn from translating the personal cube coords to
   // local space. however only the cube faces visible to the camera must be drawn to the screen
+}
+
+void chunk::generateMesh()
+{ // figure out what bkocks need to be drawn. some sort of algo to generate all the vertices
+    for (uint8_t x = 0; x < 16; x++)
+    {
+        for (uint8_t y = 0; y < 128; y++)
+        {
+            for (uint8_t z = 0; z < 16; z++)
+            {
+                if (blockdata[x][y][z] != 0)
+                {//reuse the position vertices and add specific texture offset for each block
+
+                }
+            }
+        }
+    }
 }

@@ -9,6 +9,7 @@
 
 #define WIN_WIDTH 2560
 #define WIN_HEIGTH 1600
+#define CELLSIZE 16
 using namespace std;
 
 // Camera variables
@@ -153,38 +154,45 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     {
+        ;
+        const float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
+        const float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
+
+        const int col = 4, row = 15; // Change these to select different textures
+        const float u = col * cellSize;
+        const float v = row * cellSize;
+
         float vertices[] = {
-            // Positions          // Texture Coords
-            0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Back face (bottom-left corner at origin)
-            1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-            0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        
-            0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // Front face
-            1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-            0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-        
-            0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Left face
-            0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            0.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-            0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        
-            1.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Right face
-            1.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-        
-            0.0f, 0.0f, 0.0f, 0.0f, 0.0f, // Bottom face
-            1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 0.0f, 1.0f, 1.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 0.0f, 1.0f,
-        
-            0.0f, 1.0f, 0.0f, 0.0f, 0.0f, // Top face
-            1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-            0.0f, 1.0f, 1.0f, 0.0f, 1.0f
-        };
+            // Positions          // Texture Coords (Atlas-based)
+            0.0f, 0.0f, 0.0f, u, v + cellSize, // Back face
+            1.0f, 0.0f, 0.0f, u + cellSize, v + cellSize,
+            1.0f, 1.0f, 0.0f, u + cellSize, v,
+            0.0f, 1.0f, 0.0f, u, v,
+
+            0.0f, 0.0f, 1.0f, u, v + cellSize, // Front face
+            1.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
+            1.0f, 1.0f, 1.0f, u + cellSize, v,
+            0.0f, 1.0f, 1.0f, u, v,
+
+            0.0f, 0.0f, 0.0f, u, v + cellSize, // Left face
+            0.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
+            0.0f, 1.0f, 1.0f, u + cellSize, v,
+            0.0f, 1.0f, 0.0f, u, v,
+
+            1.0f, 0.0f, 0.0f, u, v + cellSize, // Right face
+            1.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
+            1.0f, 1.0f, 1.0f, u + cellSize, v,
+            1.0f, 1.0f, 0.0f, u, v,
+
+            0.0f, 0.0f, 0.0f, u, v + cellSize, // Bottom face
+            1.0f, 0.0f, 0.0f, u + cellSize, v + cellSize,
+            1.0f, 0.0f, 1.0f, u + cellSize, v,
+            0.0f, 0.0f, 1.0f, u, v,
+
+            0.0f, 1.0f, 0.0f, u, v + cellSize, // Top face
+            1.0f, 1.0f, 0.0f, u + cellSize, v + cellSize,
+            1.0f, 1.0f, 1.0f, u + cellSize, v,
+            0.0f, 1.0f, 1.0f, u, v};
 
         unsigned int indices[] = {
             0, 1, 2, 2, 3, 0,       // Back face
@@ -206,7 +214,7 @@ int main()
         Shader myshader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
         Renderer renderer;
 
-        Texture grass("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/dirt.jpg");
+        Texture grass("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png");
         grass.bind();
         myshader.setUniform1i("u_grass", 0);
 
