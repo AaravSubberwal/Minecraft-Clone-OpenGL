@@ -6,7 +6,7 @@
             "label": "C/C++: g++.exe build active file",
             "command": "C:/msys64/ucrt64/bin/g++.exe",
             "args": [
-                //"-g",
+                //"-g",  // Uncomment for debugging
                 "-O2",
                 "-std=c++17",
                 "-I${workspaceFolder}/include",
@@ -15,10 +15,13 @@
                 "${workspaceFolder}/src/GLbuffers.cpp",
                 "${workspaceFolder}/src/Renderer.cpp",
                 "${workspaceFolder}/src/shader.cpp",
-                "${workspaceFolder}/src/textures.cpp",
+                "${workspaceFolder}/src/textures.cpp", 
                 "${workspaceFolder}/src/vendor/stb_image.cpp",
-                "${workspaceFolder}/src/glad.c",
-                "-lglfw3dll",
+                "${workspaceFolder}/src/vendor/glad.c",
+                "-lglfw3",  // Link against static GLFW library
+                "-lopengl32",  // Required for OpenGL on Windows
+                "-lgdi32",  // Required for GLFW on Windows
+                "-DGLFW_STATIC",  // Define for static linking
                 "-o",
                 "${workspaceFolder}/bin/cutable.exe"
             ],

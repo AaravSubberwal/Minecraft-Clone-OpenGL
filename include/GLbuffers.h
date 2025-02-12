@@ -64,7 +64,7 @@ public:
 class IndexBuffer
 {
 public:
-    IndexBuffer(const unsigned int *data, unsigned int count);
+    IndexBuffer(const unsigned int *data, unsigned int count, unsigned int hint = GL_STATIC_DRAW);
     ~IndexBuffer();
     void bind() const;
     void unbind() const;

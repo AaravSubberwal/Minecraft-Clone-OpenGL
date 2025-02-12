@@ -8,26 +8,24 @@
 #include "Renderer.h"
 #include "shader.h"
 
-
 class Block
 {
 private:
     static float vertices[];
     static const unsigned int indices[];
-    static std::unordered_map<std::string, uint8_t> ID_Block_Map;
-
+    static const std::unordered_map<std::string, uint8_t> NameIDRegistery;
+    static const std::unordered_map<uint8_t, TextData> IDTexRegistery;
+//i need some sort of a hashmap to ID and what texture goes on what face
     std::string type;
-    uint8_t ID;
-    static float frontV[];
-    static float frontI[];
-    static float leftV[];
-    static float leftI[];
-    static float rightV[];
-    static float rightI[];
-
 public:
     Block(std::string type);
     ~Block();
+};
+
+struct TextData
+{//each face of a block will have different U,V texture offsets to use this is unique for every ID and will stay const 
+// 48 floats, 24 U,V coordinates per block
+    float UV[48];  //back, front, left, right, bottom, top
 };
 
 class WorldBlock
@@ -44,11 +42,10 @@ public:
 class chunk
 {
 private:
-    float x, y, z;
+    float xPos, yPos, zPos;
     uint8_t blockdata[16][128][16]; // 32KB lfg
 
 public:
-    void drawFlat();
+    void setFlat();
+    void draw();
 };
-
-

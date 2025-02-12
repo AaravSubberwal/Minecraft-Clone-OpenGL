@@ -40,13 +40,23 @@ const unsigned int Block::indices[] = {
     16, 17, 18, 18, 19, 16, // Bottom face
     20, 21, 22, 22, 23, 20  // Top face
 };
-std::unordered_map<std::string, uint8_t> Block::ID_Block_Map = {{"air", 0}, 
-                                                                {"grass block", 1}, 
-                                                                {"stone", 2}, 
-                                                                {"dirt", 3}};
+const std::unordered_map<std::string, uint8_t> Block::NameIDRegistery = {
+    {"air", 0},
+    {"grass block", 1},
+    {"stone", 2},
+    {"dirt", 3},
+    {"cobblestone", 4}
+};
+
+const std::unordered_map<uint8_t, TextData> IDTexRegistery = {
+    {1,{}}, // grass_block
+    {2,{}}, // stone
+    {3,{}}, // dirt
+    {4,{}}  // cobblestone
+};
 Block::Block(std::string type)
 {
-    if (ID_Block_Map.find(type) == ID_Block_Map.end())
+    if (NameIDRegistery.find(type) == NameIDRegistery.end())
     {
         std::cerr << "Invalid Block type!\n";
         return;
@@ -62,7 +72,7 @@ Block::Block(std::string type)
     Texture atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/texture-atlas.png");
     atlas.bind();
     // code to load the texture according to the type
-    ID = ID_Block_Map[type];
+    ID = NameIDRegistery.at(type);
     switch (ID)
     {
     case 0: // air
@@ -75,8 +85,22 @@ Block::Block(std::string type)
         break;
     }
 }
+// uint8_t blockdata[16][128][16];
 
-void chunk::drawFlat()
+void chunk::setFlat()
 {
+    memset(blockdata, 0, sizeof(blockdata)); // Set everything to 0
+
+    for (uint8_t x = 0; x < 16; x++)
+    {
+        for (uint8_t z = 0; z < 16; z++)
+        {
+            blockdata[x][0][z] = 1; // Set the bottom layer to 1
+        }
+    }
 }
 
+void chunk::draw()
+{ // send the vertices for a single cube to the gpu. every other cube must be drawn from translating the personal cube coords to
+  // local space. however only the cube faces visible to the camera must be drawn to the screen
+}
