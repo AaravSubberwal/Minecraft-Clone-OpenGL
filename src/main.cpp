@@ -154,11 +154,10 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     {
-        ;
         const float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
         const float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
 
-        const int col = 4, row = 15; // Change these to select different textures
+        const int col = 3, row = 15; // Change these to select different textures
         const float u = col * cellSize;
         const float v = row * cellSize;
 
