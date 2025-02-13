@@ -6,10 +6,10 @@
 
 #include "Renderer.h"
 #include "textures.h"
+#include "Minecraft.h"
 
 #define WIN_WIDTH 2560
 #define WIN_HEIGTH 1600
-#define CELLSIZE 16
 using namespace std;
 
 // Camera variables
@@ -157,7 +157,7 @@ int main()
         const float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
         const float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
 
-        const int col = 3, row = 15; // Change these to select different textures
+        const int col = 3, row = 15 - (14); // Change these to select different textures
         const float u = col * cellSize;
         const float v = row * cellSize;
 
@@ -213,15 +213,16 @@ int main()
         Shader myshader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
         Renderer renderer;
 
-        Texture grass("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png");
-        grass.bind();
-        myshader.setUniform1i("u_grass", 0);
+        Texture atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png");
+        atlas.bind();
+        myshader.setUniform1i("u_atlas", 0);
 
         glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH / (float)WIN_HEIGTH, 0.1f, 100.0f);
 
         glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
         myshader.setUniformMatrix4fv("u_model", model);
         myshader.setUniformMatrix4fv("u_projection", projection);

@@ -2,9 +2,9 @@
 layout(location = 0) out vec4 color;
 
 in vec2 texCoords;
-uniform sampler2D u_grass;
+uniform sampler2D u_atlas;
 
 void main()
 {
-    color = texture(u_grass, texCoords);
+    color = texture(u_atlas, texCoords);
 }

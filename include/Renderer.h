@@ -1,3 +1,4 @@
+#pragma once
 #include "GLbuffers.h"
 #include "shader.h"
 

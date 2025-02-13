@@ -6,7 +6,7 @@ Texture::Texture(const std::string &path)
     : filepath(path),
       localbuffer(nullptr), ID(0), width(0), height(0), BPP(0) // Added BPP initialization
 {
-    stbi_set_flip_vertically_on_load(1);
+    // stbi_set_flip_vertically_on_load(1);
     localbuffer = stbi_load(path.c_str(), &width, &height, &BPP, 4);
 
     glGenTextures(1, &ID);

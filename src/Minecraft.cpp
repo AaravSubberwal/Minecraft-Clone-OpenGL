@@ -32,8 +32,54 @@ float Block::vertices[] = {
     0.5f, 0.5f, 0.5f, 1.0f, 1.0f,
     -0.5f, 0.5f, 0.5f, 0.0f, 1.0f};
 
+const float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
+const float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
+
+const int col = 3, row = 15 - (14); // Change these to select different textures
+const float u = col * cellSize;
+const float v = row * cellSize;
+
+float vertices[] = {
+    // Positions          // Texture Coords (Atlas-based)
+    0.0f, 0.0f, 0.0f, u, v + cellSize, // Back face
+    1.0f, 0.0f, 0.0f, u + cellSize, v + cellSize,
+    1.0f, 1.0f, 0.0f, u + cellSize, v,
+    0.0f, 1.0f, 0.0f, u, v,
+
+    0.0f, 0.0f, 1.0f, u, v + cellSize, // Front face
+    1.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
+    1.0f, 1.0f, 1.0f, u + cellSize, v,
+    0.0f, 1.0f, 1.0f, u, v,
+
+    0.0f, 0.0f, 0.0f, u, v + cellSize, // Left face
+    0.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
+    0.0f, 1.0f, 1.0f, u + cellSize, v,
+    0.0f, 1.0f, 0.0f, u, v,
+
+    1.0f, 0.0f, 0.0f, u, v + cellSize, // Right face
+    1.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
+    1.0f, 1.0f, 1.0f, u + cellSize, v,
+    1.0f, 1.0f, 0.0f, u, v,
+
+    0.0f, 0.0f, 0.0f, u, v + cellSize, // Bottom face
+    1.0f, 0.0f, 0.0f, u + cellSize, v + cellSize,
+    1.0f, 0.0f, 1.0f, u + cellSize, v,
+    0.0f, 0.0f, 1.0f, u, v,
+
+    0.0f, 1.0f, 0.0f, u, v + cellSize, // Top face
+    1.0f, 1.0f, 0.0f, u + cellSize, v + cellSize,
+    1.0f, 1.0f, 1.0f, u + cellSize, v,
+    0.0f, 1.0f, 1.0f, u, v};
+unsigned int Block::indices[] = {
+    0, 1, 2, 2, 3, 0,       // Back face
+    4, 5, 6, 6, 7, 4,       // Front face
+    8, 9, 10, 10, 11, 8,    // Left face
+    12, 13, 14, 14, 15, 12, // Right face
+    16, 17, 18, 18, 19, 16, // Bottom face
+    20, 21, 22, 22, 23, 20  // Top face
+};
 const std::unordered_map<std::string, uint8_t> Block::NameIDRegistry = {
-    {"air",0},
+    {"air", 0},
     {"grass_block", 1},
     {"dirt", 2},
     {"stone", 3}};
@@ -45,7 +91,7 @@ const std::unordered_map<uint8_t, std::vector<std::pair<int, int>>> Block::IDTex
             {3, 15}, // Left
             {3, 15}, // Right
             {2, 15}, // Bottom (Dirt)
-            {1, 0}  // Top (Grass)
+            {1, 0}   // Top (Grass)
         }},
     {2, {{2, 15}, {2, 15}, {2, 0}, {2, 15}, {2, 15}, {2, 15}}},
     {3, {{1, 15}, {1, 15}, {1, 15}, {1, 15}, {1, 15}, {1, 15}}}};
@@ -78,13 +124,16 @@ Block::Block(const std::string &type) : type(type)
     }
 }
 
+void Block::terrimummy(float (&vartice)[120])
+{
+}
+
 face::face(int row, int col)
     : texCoordsArray{
-          col * cellSize, (row + 1) * cellSize,      
-          (col + 1) * cellSize, (row + 1) * cellSize, 
-          (col + 1) * cellSize, row * cellSize,       
-          col * cellSize, row * cellSize              
-      }
+          col * cellSize, (row + 1) * cellSize,
+          (col + 1) * cellSize, (row + 1) * cellSize,
+          (col + 1) * cellSize, row * cellSize,
+          col * cellSize, row * cellSize}
 {
 }
 // uint8_t blockdata[16][128][16];
@@ -117,8 +166,28 @@ void chunk::generateMesh()
             {
                 if (blockdata[x][y][z] != 0)
                 { // reuse the position vertices and add specific texture offset for each block
+                    glm::vec3 cubeposition((float)x,(float)y,(float)z);
                 }
             }
         }
     }
+}
+
+chunk::chunk(const std::string &vertexPath, const std::string &fragmentPath) : shader(vertexPath, fragmentPath)
+{
+    VertexArray va;
+    VertexBuffer vb(vertices, sizeof(vertices));
+    VertexBufferLayout layout;
+    layout.push<float>(3);
+    layout.push<float>(2);
+    va.addBuffer(vb, layout);
+    IndexBuffer ib(Block::indices, 36);
+
+    Texture atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png");
+    atlas.bind();
+    shader.setUniform1i("u_atlas", 0);
+
+    blockdata[0][0][0] = 1;
+
+    
 }

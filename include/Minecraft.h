@@ -3,7 +3,6 @@
 #include <string>
 #include <iostream>
 #include <glad/glad.h>
-#include <array>
 #include <vector>
 
 #include "textures.h"
@@ -19,26 +18,14 @@ private:
     std::vector<float> texCoordsArray; // Stores texture coordinates for the face
 
 public:
-    face(int col, int row)
-    {
-        float u = col * cellSize;
-        float v = row * cellSize;
-        texCoordsArray = {
-            u, v + cellSize,            // Top-left
-            u + cellSize, v + cellSize, // Top-right
-            u + cellSize, v,            // Bottom-right
-            u, v                        // Bottom-left
-        };
-    }
-
+    face(int row, int col);
     const std::vector<float> &getTexCoords() const { return texCoordsArray; }
 };
-
+// ig i would have make an instance of each block about to be used before i can use them
+// just having the proper offsets ready before hand might be better but this code works sooo fuck off
 class Block
 {
 private:
-    static float vertices[];
-    static unsigned int indices[];
     static const std::unordered_map<std::string, uint8_t> NameIDRegistry;
     static const std::unordered_map<uint8_t, std::vector<std::pair<int, int>>> IDTexRegistry;
 
@@ -47,20 +34,24 @@ private:
     std::vector<face> faces; // back, front, left, right, bottom, top
 
 public:
+    static float vertices[];
+    static unsigned int indices[];
     Block(const std::string &type);
     ~Block() = default;
+
+    void terrimummy(float (&arr)[120]);
 };
-
-
 
 class chunk
 {
 private:
     float xPos, yPos, zPos;
     uint8_t blockdata[16][128][16]; // 32KB lfg
-
+    Shader shader;
+    std::vector<glm::vec3> fuckme;
 public:
     void setFlat();
     void draw();
     void generateMesh();
+    chunk(const std::string& vertexPath, const std::string& fragmentPath);//takes in what kind of a vhunk it is
 };
