@@ -1,188 +1,172 @@
 #include "Minecraft.h"
-World::World(Shader &shader):shader(shader), atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png")
-{
-    VertexArray va;
-    VertexBuffer vb(vertices, sizeof(vertices));
-    VertexBufferLayout layout;
-    layout.push<float>(3);
-    va.addBuffer(vb, layout);
-    IndexBuffer ib(Block::indices, 36);
-// we now have vertex buffer that stores the local positions for a block in vram
 
+World::World(Shader &shader) : shader(shader),
+                               atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), mychunk(0.0f, 0.0f, 0.0f)
+{
     atlas.bind();
-    shader.setUniform1i("u_atlas",0);
+    shader.setUniform1i("u_atlas", 0);
+    shader.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
+
+    mychunk.setFlat(); // e.g., generate a flat terrain layout
+    mychunk.generateMesh();
 }
 
-// uint8_t blockdata[16][128][16];
-chunk::chunk()
+World::~World()
 {
 }
 
-void chunk::setFlat()
+void World::render()
 {
-    memset(blockdata, 0, sizeof(blockdata)); // Set everything to 0
-
-    for (uint8_t x = 0; x < 16; x++)
-    {
-        for (uint8_t z = 0; z < 16; z++)
-        {
-            blockdata[x][0][z] = 1; // Set the bottom layer to 1
-        }
-    }
+    mychunk.render();
 }
 
-void chunk::draw()
-{ // send the vertices for a single cube to the gpu. every other cube must be drawn from translating the personal cube coords to
-  // local space. however only the cube faces visible to the camera must be drawn to the screen
+chunk::chunk(float x, float y, float z) : xPos(x), yPos(y), zPos(z), indexCount(0)
+{
+    // Initialize block data to 0.
+    memset(blockdata, 0, sizeof(blockdata));
 }
 
 void chunk::generateMesh()
-{ // figure out what bkocks need to be drawn. some sort of algo to generate all the vertices
-    for (uint8_t x = 0; x < 16; x++)
+{
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    unsigned int indexOffset = 0;
+    // Iterate through all blocks in the chunk.
+    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
     {
-        for (uint8_t y = 0; y < 128; y++)
+        for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
         {
-            for (uint8_t z = 0; z < 16; z++)
+            for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
             {
-                if (blockdata[x][y][z] != 0)
-                { // reuse the position vertices and add specific texture offset for each block
-                    glm::vec3 cubeposition((float)x, (float)y, (float)z);
+                uint8_t blockID = blockdata[x][y][z];
+                if (blockID == 0)
+                    continue; // Skip air blocks.
+
+                // For each face, if visible, add its vertices and indices.
+                for (int face = 0; face < 6; face++)
+                {
+                    if (!isFaceVisible(x, y, z, face))
+                        continue;
+
+                    // For each face, add 4 vertices.
+                    for (int v = 0; v < 4; v++)
+                    {
+                        Vertex vert;
+                        vert.position = glm::vec3(xPos + x, yPos + y, zPos + z) + faceVertices[face][v];
+                        vert.texIndex = blockTextureLookup(blockID, face);
+                        vertices.push_back(vert);
+                    }
+                    // Add 6 indices to form two triangles for the face.
+                    indices.push_back(indexOffset + 0);
+                    indices.push_back(indexOffset + 1);
+                    indices.push_back(indexOffset + 2);
+                    indices.push_back(indexOffset + 2);
+                    indices.push_back(indexOffset + 3);
+                    indices.push_back(indexOffset + 0);
+                    indexOffset += 4;
                 }
             }
         }
     }
+    indexCount = indices.size();
+
+    // Generate and bind buffers.
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+    glBindVertexArray(vao);
+
+    // Upload vertex data.
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+    // Upload index data.
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
+
+    // Set vertex attributes.
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, position));
+    glEnableVertexAttribArray(0);
+    glVertexAttribIPointer(1, 1, GL_UNSIGNED_BYTE, sizeof(Vertex), (void *)offsetof(Vertex, texIndex));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
 }
 
-Block::Block(const std::string &type) : type(type)
+chunk::~chunk()
 {
-    auto it = NameIDRegistry.find(type);
-    if (it != NameIDRegistry.end())
-    {
-        ID = it->second;
-    }
-    else
-    {
-        throw std::runtime_error("Unknown block type: " + type);
-    }
+    // Clean up GPU buffers.
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
+}
 
-    // Initialize faces based on texture mapping
-    auto texIt = IDTexRegistry.find(ID);
-    if (texIt != IDTexRegistry.end())
+bool chunk::isBlockVisible(uint8_t x, uint8_t y, uint8_t z)
+{
+    // Here we simply consider a block "visible" if it is non-air.
+    return blockdata[x][y][z] != 0;
+}
+
+bool chunk::isFaceVisible(uint8_t x, uint8_t y, uint8_t z, int face)
+{
+    // For now, always return true. You can add neighbor checks later.
+    return true;
+}
+
+void chunk::setFlat()
+{
+    // Clear block data.
+    memset(blockdata, 0, sizeof(blockdata));
+    // Set the bottom layer to block ID 1 (for example, Grass).
+    for (uint8_t x = 0; x < CHUNK_SIZE; x++)
     {
-        const auto &texCoords = texIt->second;
-        for (const auto &coord : texCoords)
+        for (uint8_t z = 0; z < CHUNK_SIZE; z++)
         {
-            faces.emplace_back(coord.first, coord.second);
+            blockdata[x][0][z] = 3;
         }
     }
-    else
-    {
-        throw std::runtime_error("Texture mapping not found for block ID: " + std::to_string(ID));
-    }
 }
-float Block::vertices[] = {
-    // Positions          
-    -0.5f, -0.5f, -0.5f, // Back face
-    0.5f, -0.5f, -0.5f,
-    0.5f, 0.5f, -0.5f,
-    -0.5f, 0.5f, -0.5f,
 
-    -0.5f, -0.5f, 0.5f, // Front face
-    0.5f, -0.5f, 0.5f,
-    0.5f, 0.5f, 0.5f,
-    -0.5f, 0.5f, 0.5f,
-
-    -0.5f, -0.5f, -0.5f, // Left face
-    -0.5f, -0.5f, 0.5f,
-    -0.5f, 0.5f, 0.5f,
-    -0.5f, 0.5f, -0.5f,
-
-    0.5f, -0.5f, -0.5f, // Right face
-    0.5f, -0.5f, 0.5f,
-    0.5f, 0.5f, 0.5f,
-    0.5f, 0.5f, -0.5f,
-
-    -0.5f, -0.5f, -0.5f, // Bottom face
-    0.5f, -0.5f, -0.5f,
-    0.5f, -0.5f, 0.5f,
-    -0.5f, -0.5f, 0.5f,
-
-    -0.5f, 0.5f, -0.5f, // Top face
-    0.5f, 0.5f, -0.5f,
-    0.5f, 0.5f, 0.5f,
-    -0.5f, 0.5f, 0.5f
-};
-
-
-const float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
-const float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
-
-const int col = 3, row = 15 - (14); // Change these to select different textures
-const float u = col * cellSize;
-const float v = row * cellSize;
-
-float vertices[] = {
-    // Positions          // Texture Coords (Atlas-based)
-    0.0f, 0.0f, 0.0f, u, v + cellSize, // Back face
-    1.0f, 0.0f, 0.0f, u + cellSize, v + cellSize,
-    1.0f, 1.0f, 0.0f, u + cellSize, v,
-    0.0f, 1.0f, 0.0f, u, v,
-
-    0.0f, 0.0f, 1.0f, u, v + cellSize, // Front face
-    1.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
-    1.0f, 1.0f, 1.0f, u + cellSize, v,
-    0.0f, 1.0f, 1.0f, u, v,
-
-    0.0f, 0.0f, 0.0f, u, v + cellSize, // Left face
-    0.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
-    0.0f, 1.0f, 1.0f, u + cellSize, v,
-    0.0f, 1.0f, 0.0f, u, v,
-
-    1.0f, 0.0f, 0.0f, u, v + cellSize, // Right face
-    1.0f, 0.0f, 1.0f, u + cellSize, v + cellSize,
-    1.0f, 1.0f, 1.0f, u + cellSize, v,
-    1.0f, 1.0f, 0.0f, u, v,
-
-    0.0f, 0.0f, 0.0f, u, v + cellSize, // Bottom face
-    1.0f, 0.0f, 0.0f, u + cellSize, v + cellSize,
-    1.0f, 0.0f, 1.0f, u + cellSize, v,
-    0.0f, 0.0f, 1.0f, u, v,
-
-    0.0f, 1.0f, 0.0f, u, v + cellSize, // Top face
-    1.0f, 1.0f, 0.0f, u + cellSize, v + cellSize,
-    1.0f, 1.0f, 1.0f, u + cellSize, v,
-    0.0f, 1.0f, 1.0f, u, v};
-unsigned int Block::indices[] = {
-    0, 1, 2, 2, 3, 0,       // Back face
-    4, 5, 6, 6, 7, 4,       // Front face
-    8, 9, 10, 10, 11, 8,    // Left face
-    12, 13, 14, 14, 15, 12, // Right face
-    16, 17, 18, 18, 19, 16, // Bottom face
-    20, 21, 22, 22, 23, 20  // Top face
-};
-const std::unordered_map<std::string, uint8_t> Block::NameIDRegistry = {
-    {"air", 0},
-    {"grass_block", 1},
-    {"dirt", 2},
-    {"stone", 3}};
-
-const std::unordered_map<uint8_t, std::vector<std::pair<int, int>>> Block::IDTexRegistry = {
-    {1, {
-            {3, 15}, // Back
-            {3, 15}, // Front
-            {3, 15}, // Left
-            {3, 15}, // Right
-            {2, 15}, // Bottom (Dirt)
-            {1, 0}   // Top (Grass)
-        }},
-    {2, {{2, 15}, {2, 15}, {2, 0}, {2, 15}, {2, 15}, {2, 15}}},
-    {3, {{1, 15}, {1, 15}, {1, 15}, {1, 15}, {1, 15}, {1, 15}}}};
-
-face::face(int row, int col)
-    : texCoordsArray{
-          col * cellSize, (row + 1) * cellSize,
-          (col + 1) * cellSize, (row + 1) * cellSize,
-          (col + 1) * cellSize, row * cellSize,
-          col * cellSize, row * cellSize}
+void chunk::render()
 {
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
 }
+
+void chunk::draw()
+{
+    // Currently, simply call render.
+    render();
+}
+// Block ID 1 (Grass): { top, bottom, right, left, front, back }
+// Block ID 2 (Stone): Same texture on all faces.
+// Block ID 3 (Dirt): Same texture on all faces.
+const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures = {
+    {1, {3, 3, 0, 2, 3, 3}},
+    {2, {1, 1, 1, 1, 1, 1}},
+    {3, {2, 2, 2, 2, 2, 2}}};
+
+// Lookup function to get the texture atlas index for a given block and face.
+uint8_t blockTextureLookup(uint8_t blockID, int face)
+{
+    auto it = blockTextures.find(blockID);
+    if (it != blockTextures.end())
+    {
+        return it->second[face];
+    }
+    return 0; // Default to texture 0 if blockID not found.
+}
+const glm::vec3 faceVertices[6][4] = {
+    // Right (+X)
+    {{1, 0, 0}, {1, 1, 0}, {1, 1, 1}, {1, 0, 1}},
+    // Left (-X)
+    {{0, 0, 1}, {0, 1, 1}, {0, 1, 0}, {0, 0, 0}},
+    // Top (+Y)
+    {{0, 1, 0}, {0, 1, 1}, {1, 1, 1}, {1, 1, 0}},
+    // Bottom (-Y)
+    {{0, 0, 1}, {0, 0, 0}, {1, 0, 0}, {1, 0, 1}},
+    // Front (+Z)
+    {{0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}},
+    // Back (-Z)
+    {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};

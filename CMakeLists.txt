@@ -9,6 +9,7 @@ set(SOURCES
     src/GLbuffers.cpp
     src/Renderer.cpp
     src/shader.cpp
+    src/Minecraft.cpp
     src/textures.cpp
     src/Camera.cpp
     src/vendor/stb_image.cpp

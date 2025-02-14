@@ -1,72 +1,59 @@
 #pragma once
+
 #include <unordered_map>
-#include <string>
-#include <iostream>
-#include <glad/glad.h>
+#include <array>
 #include <vector>
+#include <cstdint>
+#include <cstring>
+#include <glm/glm.hpp>
+#include <glad/glad.h>
 
 #include "textures.h"
 #include "Renderer.h"
 #include "shader.h"
 #include "Camera.h"
 
-class World
-{
+#define CHUNK_HEIGHT 128
+#define CHUNK_SIZE 16
+
+struct Vertex {
+    glm::vec3 position;
+    uint8_t texIndex;
+};
+
+class chunk {
+private:
+    float xPos, yPos, zPos;
+    uint8_t blockdata[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE]; // ~32KB per chunk
+    GLuint vao, vbo, ebo;
+    
+    size_t indexCount; // Number of indices in our mesh
+
+    bool isBlockVisible(uint8_t x, uint8_t y, uint8_t z);
+    bool isFaceVisible(uint8_t x, uint8_t y, uint8_t z, int face);
+    
+    public:
+    void generateMesh(); // Builds the VAO/VBO/EBO
+    chunk(float x, float y, float z); // Constructor: position in world space.
+    ~chunk();
+    void setFlat();
+    void render();
+    void draw(); // For additional draw logic, if needed.
+};
+class World {
 private:
     Shader &shader;
     Texture atlas;
-
-    chunk ourChunk;
-
+    chunk mychunk;
 public:
     World(Shader &shader);
     ~World();
+    void render();
 };
 
-class chunk
-{
-private:
-    float xPos, yPos, zPos;
-    uint8_t blockdata[16][128][16]; // 32KB lfg
 
-public:
-    chunk(); // takes in what kind of a vhunk it is
-    ~chunk();
-    void setFlat();
-    void draw();
-    void generateMesh();
-};
+// External declarations for texture mapping and face vertices.
+extern const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures;
+uint8_t blockTextureLookup(uint8_t blockID, int face);
 
-class Block
-{
-private:
-    static const std::unordered_map<std::string, uint8_t> NameIDRegistry;
-    static const std::unordered_map<uint8_t, std::vector<std::pair<int, int>>> IDTexRegistry;
-
-    std::string type;
-    uint8_t ID;
-    std::vector<face> faces; // back, front, left, right, bottom, top
-
-public:
-    static float vertices[];
-    static unsigned int indices[];
-    Block(const std::string &type);
-    ~Block() = default;
-
-    void terrimummy(float (&arr)[120]);
-};
-
-class face
-{
-private:
-    static constexpr float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
-    static constexpr float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
-
-    std::vector<float> texCoordsArray; // Stores texture coordinates for the face
-
-public:
-    face(int row, int col);
-    const std::vector<float> &getTexCoords() const { return texCoordsArray; }
-};
-// ig i would have make an instance of each block about to be used before i can use them
-// just having the proper offsets ready before hand might be better but this code works sooo fuck off
+extern const glm::vec3 faceVertices[6][4];
