@@ -8,21 +8,35 @@
 #include "textures.h"
 #include "Renderer.h"
 #include "shader.h"
+#include "Camera.h"
 
-class face
+class World
 {
 private:
-    static constexpr float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
-    static constexpr float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
+    Shader &shader;
+    Texture atlas;
 
-    std::vector<float> texCoordsArray; // Stores texture coordinates for the face
+    chunk ourChunk;
 
 public:
-    face(int row, int col);
-    const std::vector<float> &getTexCoords() const { return texCoordsArray; }
+    World(Shader &shader);
+    ~World();
 };
-// ig i would have make an instance of each block about to be used before i can use them
-// just having the proper offsets ready before hand might be better but this code works sooo fuck off
+
+class chunk
+{
+private:
+    float xPos, yPos, zPos;
+    uint8_t blockdata[16][128][16]; // 32KB lfg
+
+public:
+    chunk(); // takes in what kind of a vhunk it is
+    ~chunk();
+    void setFlat();
+    void draw();
+    void generateMesh();
+};
+
 class Block
 {
 private:
@@ -42,16 +56,17 @@ public:
     void terrimummy(float (&arr)[120]);
 };
 
-class chunk
+class face
 {
 private:
-    float xPos, yPos, zPos;
-    uint8_t blockdata[16][128][16]; // 32KB lfg
-    Shader shader;
-    std::vector<glm::vec3> fuckme;
+    static constexpr float atlasSize = 16.0f;           // 16x16 grid (each cell is 16x16 pixels)
+    static constexpr float cellSize = 1.0f / atlasSize; // Each texture takes 1/16th of the atlas (0.0625)
+
+    std::vector<float> texCoordsArray; // Stores texture coordinates for the face
+
 public:
-    void setFlat();
-    void draw();
-    void generateMesh();
-    chunk(const std::string& vertexPath, const std::string& fragmentPath);//takes in what kind of a vhunk it is
+    face(int row, int col);
+    const std::vector<float> &getTexCoords() const { return texCoordsArray; }
 };
+// ig i would have make an instance of each block about to be used before i can use them
+// just having the proper offsets ready before hand might be better but this code works sooo fuck off

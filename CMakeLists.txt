@@ -10,7 +10,7 @@ set(SOURCES
     src/Renderer.cpp
     src/shader.cpp
     src/textures.cpp
-    src/Minecraft.cpp
+    src/Camera.cpp
     src/vendor/stb_image.cpp
     src/vendor/glad.c
 )

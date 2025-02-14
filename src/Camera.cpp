@@ -1,61 +1,103 @@
 #include "Camera.h"
 
-Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch) 
-    : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(5.0f), MouseSensitivity(0.1f) {
-    Position = position;
-    WorldUp = up;
-    Yaw = yaw;
-    Pitch = pitch;
-    updateCameraVectors();
-}
+Camera::Camera() : cameraPos(glm::vec3(0.0f, 0.0f, 3.0f)),
+                   cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)),
+                   cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)),
+                   yaw(-90.0f),
+                   pitch(0.0f),
+                   lastX(WIN_WIDTH / 2.0f),
+                   lastY(WIN_HEIGHT / 2.0f),
+                   firstMouse(true),
+                   deltaTime(0.0f),
+                   lastFrame(0.0f),
+                   currentFrame(0),
+                   view(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)) {}
 
-glm::mat4 Camera::getViewMatrix() const {
-    return glm::lookAt(Position, Position + Front, Up);
-}
+void Camera::processKeyboardInput(GLFWwindow *window)
+{
+    currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
 
-void Camera::processKeyboard(GLFWwindow* window, float deltaTime) {
-    float velocity = MovementSpeed * deltaTime;
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        Position += Front * velocity;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        Position -= Front * velocity;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        Position -= Right * velocity;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        Position += Right * velocity;
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        Position += Up * velocity;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        Position -= Up * velocity;
-}
-
-void Camera::processMouseMovement(float xoffset, float yoffset, bool constrainPitch) {
-    xoffset *= MouseSensitivity;
-    yoffset *= MouseSensitivity;
-
-    Yaw += xoffset;
-    Pitch += yoffset;
-
-    // Make sure that when pitch is out of bounds, screen doesn't get flipped
-    if (constrainPitch) {
-        if (Pitch > 89.0f)
-            Pitch = 89.0f;
-        if (Pitch < -89.0f)
-            Pitch = -89.0f;
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    {
+        glfwSetWindowShouldClose(window, true);
     }
 
-    // Update Front, Right and Up Vectors using the updated Euler angles
-    updateCameraVectors();
+    float cameraSpeed = 5.0f * deltaTime; // Adjust speed based on time
+
+    // Move forward
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        {
+            cameraPos += 2.0f * cameraSpeed * cameraFront;
+        }
+        else
+        {
+            cameraPos += cameraSpeed * cameraFront;
+        }
+    }
+    // Move backward
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    {
+        cameraPos -= cameraSpeed * cameraFront;
+    }
+    // Move left
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    {
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+    // Move right
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    {
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+    // Move up
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        cameraPos += cameraSpeed * cameraUp;
+    }
+    // Move down
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+        cameraPos -= cameraSpeed * cameraUp;
+    }
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
 
-void Camera::updateCameraVectors() {
-    // Calculate the new Front vector
+void Camera::mouse_callback(GLFWwindow *window, double xpos, double ypos)
+{
+    Camera *camera = static_cast<Camera *>(glfwGetWindowUserPointer(window));
+    if (camera->firstMouse)
+    {
+        camera->lastX = xpos;
+        camera->lastY = ypos;
+        camera->firstMouse = false;
+    }
+
+    float xoffset = xpos - camera->lastX;
+    float yoffset = camera->lastY - ypos; // Reversed since y-coordinates go from bottom to top
+    camera->lastX = xpos;
+    camera->lastY = ypos;
+
+    float sensitivity = 0.1f; // Adjust sensitivity
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    camera->yaw += xoffset;
+    camera->pitch += yoffset;
+
+    // Constrain pitch to avoid flipping
+    if (camera->pitch > 89.0f)
+        camera->pitch = 89.0f;
+    if (camera->pitch < -89.0f)
+        camera->pitch = -89.0f;
+
+    // Update cameraFront based on yaw and pitch
     glm::vec3 front;
-    front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    front.y = sin(glm::radians(Pitch));
-    front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    Front = glm::normalize(front);
-    // Also re-calculate the Right and Up vector
-    Right = glm::normalize(glm::cross(Front, WorldUp));  // Normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
-    Up = glm::normalize(glm::cross(Right, Front));
+    front.x = cos(glm::radians(camera->yaw)) * cos(glm::radians(camera->pitch));
+    front.y = sin(glm::radians(camera->pitch));
+    front.z = sin(glm::radians(camera->yaw)) * cos(glm::radians(camera->pitch));
+    camera->cameraFront = glm::normalize(front);
 }
