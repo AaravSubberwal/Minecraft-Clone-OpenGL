@@ -1,60 +1,68 @@
 #include "Minecraft.h"
 
-World::World(Shader &shader) : shader(shader),
-                               atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), mychunk(0.0f, 0.0f, 0.0f)
+World::World(Shader &shader, Camera &camera) : shader(shader), camera(camera),
+                                               atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), chunk(0.0f, 0.0f, 0.0f)
 {
     atlas.bind();
+    
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH / (float)WIN_HEIGTH, 0.1f, 100.0f);
+    
+    glm::mat4 model = glm::mat4(1.0f);
+    
+    shader.setUniformMatrix4fv("u_model", model);
+    shader.setUniformMatrix4fv("u_projection", projection);
+    shader.setUniform1f("atlasCellSize", 1.0f / 16.0f);
     shader.setUniform1i("u_atlas", 0);
     shader.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
 
-    mychunk.setFlat(); // e.g., generate a flat terrain layout
-    mychunk.generateMesh();
-}
-
-World::~World()
-{
+    chunk.setFlat();
+    chunk.buildMesh();
 }
 
 void World::render()
 {
-    mychunk.render();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    chunk.render();
 }
 
-chunk::chunk(float x, float y, float z) : xPos(x), yPos(y), zPos(z), indexCount(0)
+Chunk::Chunk(float x, float y, float z) : chunkX(x), chunkY(y), chunkZ(z)
 {
-    // Initialize block data to 0.
     memset(blockdata, 0, sizeof(blockdata));
 }
 
-void chunk::generateMesh()
+Chunk::~Chunk() //NO IDEA WHAT WILL HAPPEN IF buildMesh() hasnt been called before
 {
-    std::vector<Vertex> vertices;
-    std::vector<unsigned int> indices;
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
+}
+
+void Chunk::buildMesh() // called when chunk loads for the first time and when reloaded
+{
+    vertices.reserve(100);
     unsigned int indexOffset = 0;
-    // Iterate through all blocks in the chunk.
-    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
+    for (uint8_t i = 0; i < CHUNK_SIZE; ++i)
     {
-        for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
+        for (uint8_t j = 0; j < CHUNK_HEIGHT; ++j)
         {
-            for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
+            for (uint8_t k = 0; k < CHUNK_SIZE; ++k)
             {
-                uint8_t blockID = blockdata[x][y][z];
+                uint8_t blockID = blockdata[i][j][k];
                 if (blockID == 0)
                     continue; // Skip air blocks.
-
                 // For each face, if visible, add its vertices and indices.
                 for (int face = 0; face < 6; face++)
                 {
-                    if (!isFaceVisible(x, y, z, face))
+                    if (!isFaceVisible(i, j, k, face))
                         continue;
 
                     // For each face, add 4 vertices.
                     for (int v = 0; v < 4; v++)
                     {
-                        Vertex vert;
-                        vert.position = glm::vec3(xPos + x, yPos + y, zPos + z) + faceVertices[face][v];
-                        vert.texIndex = blockTextureLookup(blockID, face);
-                        vertices.push_back(vert);
+                        Vertex vertex;
+                        vertex.position = glm::vec3(chunkX + i, chunkY + j, chunkZ + k) + faceVertices[face][v];
+                        vertex.texIndex = faceTexIndexLookup(blockID, face);
+                        vertices.push_back(vertex);
                     }
                     // Add 6 indices to form two triangles for the face.
                     indices.push_back(indexOffset + 0);
@@ -68,105 +76,79 @@ void chunk::generateMesh()
             }
         }
     }
-    indexCount = indices.size();
+    uploadBuffers();
+}
 
-    // Generate and bind buffers.
+void Chunk::uploadBuffers()
+{
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
     glGenBuffers(1, &ebo);
     glBindVertexArray(vao);
 
-    // Upload vertex data.
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
-    // Upload index data.
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
-    // Set vertex attributes.
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
     glVertexAttribIPointer(1, 1, GL_UNSIGNED_BYTE, sizeof(Vertex), (void *)offsetof(Vertex, texIndex));
     glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
 }
 
-chunk::~chunk()
-{
-    // Clean up GPU buffers.
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
-    glDeleteBuffers(1, &ebo);
-}
-
-bool chunk::isBlockVisible(uint8_t x, uint8_t y, uint8_t z)
-{
-    // Here we simply consider a block "visible" if it is non-air.
-    return blockdata[x][y][z] != 0;
-}
-
-bool chunk::isFaceVisible(uint8_t x, uint8_t y, uint8_t z, int face)
+bool Chunk::isFaceVisible(uint8_t x, uint8_t y, uint8_t z, int face) const
 {
     // For now, always return true. You can add neighbor checks later.
     return true;
 }
 
-void chunk::setFlat()
+void Chunk::render()
 {
-    // Clear block data.
-    memset(blockdata, 0, sizeof(blockdata));
-    // Set the bottom layer to block ID 1 (for example, Grass).
+    glBindVertexArray(vao);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+}
+
+void Chunk::setFlat()
+{
     for (uint8_t x = 0; x < CHUNK_SIZE; x++)
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; z++)
         {
-            blockdata[x][0][z] = 3;
+            blockdata[x][0][z] = 2;
         }
     }
 }
 
-void chunk::render()
-{
-    glBindVertexArray(vao);
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
-    glBindVertexArray(0);
-}
-
-void chunk::draw()
-{
-    // Currently, simply call render.
-    render();
-}
-// Block ID 1 (Grass): { top, bottom, right, left, front, back }
-// Block ID 2 (Stone): Same texture on all faces.
-// Block ID 3 (Dirt): Same texture on all faces.
+//a Hashmap that maps BlockID to an array of texture indexes which correspond to each face of the block
 const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures = {
-    {1, {3, 3, 0, 2, 3, 3}},
-    {2, {1, 1, 1, 1, 1, 1}},
-    {3, {2, 2, 2, 2, 2, 2}}};
+    {1, {3, 3, 0, 2, 3, 3}}, //grass_block
+    {2, {1, 1, 1, 1, 1, 1}}, //stone
+    {3, {2, 2, 2, 2, 2, 2}}, //dirt
+    {4, {4, 4, 4, 4, 4, 4}}}; //oak planks
+//right, left, top, bottom, front, back 
 
 // Lookup function to get the texture atlas index for a given block and face.
-uint8_t blockTextureLookup(uint8_t blockID, int face)
+uint8_t faceTexIndexLookup(uint8_t blockID, int face)
 {
     auto it = blockTextures.find(blockID);
     if (it != blockTextures.end())
     {
         return it->second[face];
     }
-    return 0; // Default to texture 0 if blockID not found.
+    return 26; //wierd purple block
 }
 const glm::vec3 faceVertices[6][4] = {
     // Right (+X)
-    {{1, 0, 0}, {1, 1, 0}, {1, 1, 1}, {1, 0, 1}},
+    {{1.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 1.0f}},
     // Left (-X)
-    {{0, 0, 1}, {0, 1, 1}, {0, 1, 0}, {0, 0, 0}},
+    {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
     // Top (+Y)
-    {{0, 1, 0}, {0, 1, 1}, {1, 1, 1}, {1, 1, 0}},
+    {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f}},
     // Bottom (-Y)
-    {{0, 0, 1}, {0, 0, 0}, {1, 0, 0}, {1, 0, 1}},
+    {{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}},
     // Front (+Z)
-    {{0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}},
+    {{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
     // Back (-Z)
-    {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};
+    {{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}}};

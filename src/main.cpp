@@ -60,24 +60,11 @@ int main()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     {
-
         Shader shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
-
-        World world(shader);
-
-        
-        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH / (float)WIN_HEIGTH, 0.1f, 100.0f);
-
-        glm::mat4 model = glm::mat4(1.0f);
-
-        shader.setUniformMatrix4fv("u_model", model);
-        shader.setUniformMatrix4fv("u_projection", projection);
-        shader.setUniform1f("atlasCellSize", 1.0f / 16.0f);
+        World world(shader, camera);
 
         while (!glfwWindowShouldClose(window))
         {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
             camera.processKeyboardInput(window);
             shader.setUniformMatrix4fv("u_view", camera.view);
 
