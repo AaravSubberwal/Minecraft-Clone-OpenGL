@@ -13,6 +13,13 @@
 #define CHUNK_SIZE 16
 #define WIN_WIDTH 2560
 #define WIN_HEIGTH 1600
+#define RIGHT 0
+#define LEFT 1
+#define TOP 2
+#define BOTTOM 3
+#define FRONT 4
+#define BACK 5
+
 
 struct Vertex
 {
@@ -46,13 +53,15 @@ public:
 class World
 {
 private:
-    Shader &shader;
-    Camera &camera;
+    Shader shader;
     Texture atlas;
+    Camera camera;
+    GLFWwindow *window;
+    
     Chunk chunk;
 
 public:
-    World(Shader &shader, Camera &camera);
+    World(GLFWwindow *window);
     ~World() = default;
     void render();
 };

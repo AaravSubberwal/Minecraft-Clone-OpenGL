@@ -1,17 +1,26 @@
 #include "Minecraft.h"
 
-World::World(Shader &shader, Camera &camera) : shader(shader), camera(camera),
-                                               atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), chunk(0.0f, 0.0f, 0.0f)
+World::World(GLFWwindow *window) : shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"), window(window),
+                                   atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), chunk(0.0f, 0.0f, 0.0f)
 {
+    glfwSetCursorPosCallback(window, Camera::mouse_callback);
+    glfwSetWindowUserPointer(window, &camera);
+
+    enableDebugging();
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+//===========================================================================================================================/
+ 
     atlas.bind();
-    
+
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH / (float)WIN_HEIGTH, 0.1f, 100.0f);
-    
+
     glm::mat4 model = glm::mat4(1.0f);
-    
+
     shader.setUniformMatrix4fv("u_model", model);
     shader.setUniformMatrix4fv("u_projection", projection);
-    shader.setUniform1f("atlasCellSize", 1.0f / 16.0f);
     shader.setUniform1i("u_atlas", 0);
     shader.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
 
@@ -22,7 +31,14 @@ World::World(Shader &shader, Camera &camera) : shader(shader), camera(camera),
 void World::render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    camera.processKeyboardInput(window);
+    shader.setUniformMatrix4fv("u_view", camera.view);
+
     chunk.render();
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
 }
 
 Chunk::Chunk(float x, float y, float z) : chunkX(x), chunkY(y), chunkZ(z)
@@ -30,7 +46,7 @@ Chunk::Chunk(float x, float y, float z) : chunkX(x), chunkY(y), chunkZ(z)
     memset(blockdata, 0, sizeof(blockdata));
 }
 
-Chunk::~Chunk() //NO IDEA WHAT WILL HAPPEN IF buildMesh() hasnt been called before
+Chunk::~Chunk() // NO IDEA WHAT WILL HAPPEN IF buildMesh() hasnt been called before
 {
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
@@ -116,18 +132,18 @@ void Chunk::setFlat()
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; z++)
         {
-            blockdata[x][0][z] = 2;
+            blockdata[x][0][z] = 1;
         }
     }
 }
 
-//a Hashmap that maps BlockID to an array of texture indexes which correspond to each face of the block
+// a Hashmap that maps BlockID to an array of texture indexes which correspond to each face of the block
 const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures = {
-    {1, {3, 3, 0, 2, 3, 3}}, //grass_block
-    {2, {1, 1, 1, 1, 1, 1}}, //stone
-    {3, {2, 2, 2, 2, 2, 2}}, //dirt
-    {4, {4, 4, 4, 4, 4, 4}}}; //oak planks
-//right, left, top, bottom, front, back 
+    {1, {3, 3, 0, 2, 3, 3}},  // grass_block
+    {2, {1, 1, 1, 1, 1, 1}},  // stone
+    {3, {2, 2, 2, 2, 2, 2}},  // dirt
+    {4, {4, 4, 4, 4, 4, 4}}}; // oak planks
+// right, left, top, bottom, front, back
 
 // Lookup function to get the texture atlas index for a given block and face.
 uint8_t faceTexIndexLookup(uint8_t blockID, int face)
@@ -137,18 +153,20 @@ uint8_t faceTexIndexLookup(uint8_t blockID, int face)
     {
         return it->second[face];
     }
-    return 26; //wierd purple block
+    return 26; // wierd purple block
 }
 const glm::vec3 faceVertices[6][4] = {
     // Right (+X)
-    {{1.0f, 0.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 1.0f}},
+    {{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f}},
     // Left (-X)
-    {{0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+    {{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f}},
     // Top (+Y)
-    {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f}},
+    {{0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
     // Bottom (-Y)
-    {{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}},
+    {{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
     // Front (+Z)
     {{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
     // Back (-Z)
-    {{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}}};
+    {{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}}
+};
+

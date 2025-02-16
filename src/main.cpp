@@ -51,26 +51,13 @@ int main()
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGTH);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // Hide and capture cursor
-    Camera camera;
-    glfwSetWindowUserPointer(window, &camera);
-    glfwSetCursorPosCallback(window, Camera::mouse_callback);
-
-    enableDebugging();
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
     {
-        Shader shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl");
-        World world(shader, camera);
+        World world(window);
 
         while (!glfwWindowShouldClose(window))
         {
-            camera.processKeyboardInput(window);
-            shader.setUniformMatrix4fv("u_view", camera.view);
-
             world.render();
-            glfwSwapBuffers(window);
-            glfwPollEvents();
         }
     }
     glfwTerminate();
