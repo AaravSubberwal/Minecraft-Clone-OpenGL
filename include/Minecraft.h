@@ -23,14 +23,14 @@
 
 struct Vertex
 {
-    glm::vec3 position;
+    glm::ivec3 position;
     uint8_t texIndex;
 };
 
 class Chunk
 {
 private:
-    float chunkX, chunkY, chunkZ; // Chunk corner coordinate. Figure out which one!!
+    int chunkX, chunkY, chunkZ; // Chunk corner coordinate. Figure out which one!!
     uint8_t blockdata[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE]; // ~32KB per chunk
 
     GLuint vao, vbo, ebo;
@@ -38,7 +38,7 @@ private:
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
-    bool isFaceVisible(uint8_t x, uint8_t y, uint8_t z, int face) const;
+    bool isFaceVisible(uint8_t i, uint8_t j, uint8_t k, int face) const;
     void uploadBuffers();
 
 public:
@@ -70,4 +70,4 @@ public:
 extern const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures;
 uint8_t faceTexIndexLookup(uint8_t blockID, int face);
 
-extern const glm::vec3 faceVertices[6][4];
+extern const glm::ivec3 faceVertices[6][4];

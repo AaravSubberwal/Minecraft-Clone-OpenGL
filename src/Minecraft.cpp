@@ -11,8 +11,8 @@ World::World(GLFWwindow *window) : shader("C:/Users/Aarav/Desktop/Projects/Minec
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-//===========================================================================================================================/
- 
+    //===========================================================================================================================/
+
     atlas.bind();
 
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH / (float)WIN_HEIGTH, 0.1f, 100.0f);
@@ -30,6 +30,7 @@ World::World(GLFWwindow *window) : shader("C:/Users/Aarav/Desktop/Projects/Minec
 
 void World::render()
 {
+    glClearColor(127.0f / 255.0f, 178.0f / 255.0f, 255.0f / 255.0f, 1.0f); // skyyy
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     camera.processKeyboardInput(window);
@@ -57,11 +58,11 @@ void Chunk::buildMesh() // called when chunk loads for the first time and when r
 {
     vertices.reserve(100);
     unsigned int indexOffset = 0;
-    for (uint8_t i = 0; i < CHUNK_SIZE; ++i)
+    for (int i = 0; i < CHUNK_SIZE; ++i)
     {
-        for (uint8_t j = 0; j < CHUNK_HEIGHT; ++j)
+        for (int j = 0; j < CHUNK_HEIGHT; ++j)
         {
-            for (uint8_t k = 0; k < CHUNK_SIZE; ++k)
+            for (int k = 0; k < CHUNK_SIZE; ++k)
             {
                 uint8_t blockID = blockdata[i][j][k];
                 if (blockID == 0)
@@ -76,7 +77,7 @@ void Chunk::buildMesh() // called when chunk loads for the first time and when r
                     for (int v = 0; v < 4; v++)
                     {
                         Vertex vertex;
-                        vertex.position = glm::vec3(chunkX + i, chunkY + j, chunkZ + k) + faceVertices[face][v];
+                        vertex.position = glm::ivec3(chunkX + i, chunkY + j, chunkZ + k) + faceVertices[face][v];
                         vertex.texIndex = faceTexIndexLookup(blockID, face);
                         vertices.push_back(vertex);
                     }
@@ -95,6 +96,31 @@ void Chunk::buildMesh() // called when chunk loads for the first time and when r
     uploadBuffers();
 }
 
+bool Chunk::isFaceVisible(uint8_t i, uint8_t j, uint8_t k, int face) const
+{
+    static constexpr int offsets[6][3] = {
+        {1, 0, 0},  // RIGHT
+        {-1, 0, 0}, // LEFT
+        {0, 1, 0},  // TOP
+        {0, -1, 0}, // BOTTOM
+        {0, 0, 1},  // FRONT
+        {0, 0, -1}  // BACK
+    };
+
+    int ni = i + offsets[face][0];
+    int nj = j + offsets[face][1];
+    int nk = k + offsets[face][2];
+
+    // If the neighbor is out of bounds, assume it's air (makes border blocks visible)
+    if (ni < 0 || ni >= CHUNK_SIZE ||
+        nj < 0 || nj >= CHUNK_HEIGHT ||
+        nk < 0 || nk >= CHUNK_SIZE)
+        return true;
+
+    // Only render if the adjacent block is air (0)
+    return blockdata[ni][nj][nk] == 0;
+}
+ 
 void Chunk::uploadBuffers()
 {
     glGenVertexArrays(1, &vao);
@@ -108,16 +134,12 @@ void Chunk::uploadBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)offsetof(Vertex, position));
+    // Use glVertexAttribIPointer for integer attributes
+    glVertexAttribIPointer(0, 3, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
+
     glVertexAttribIPointer(1, 1, GL_UNSIGNED_BYTE, sizeof(Vertex), (void *)offsetof(Vertex, texIndex));
     glEnableVertexAttribArray(1);
-}
-
-bool Chunk::isFaceVisible(uint8_t x, uint8_t y, uint8_t z, int face) const
-{
-    // For now, always return true. You can add neighbor checks later.
-    return true;
 }
 
 void Chunk::render()
@@ -132,17 +154,20 @@ void Chunk::setFlat()
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; z++)
         {
-            blockdata[x][0][z] = 1;
+            blockdata[x][0][z] = 5;
+            blockdata[x][1][z] = 3;
+            blockdata[x][2][z] = 1;
         }
     }
 }
 
 // a Hashmap that maps BlockID to an array of texture indexes which correspond to each face of the block
 const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures = {
-    {1, {3, 3, 0, 2, 3, 3}},  // grass_block
-    {2, {1, 1, 1, 1, 1, 1}},  // stone
-    {3, {2, 2, 2, 2, 2, 2}},  // dirt
-    {4, {4, 4, 4, 4, 4, 4}}}; // oak planks
+    {1, {3, 3, 0, 2, 3, 3}}, // grass_block
+    {2, {1, 1, 1, 1, 1, 1}}, // stone
+    {3, {2, 2, 2, 2, 2, 2}}, // dirt
+    {4, {4, 4, 4, 4, 4, 4}}, // oak planks
+    {5, {17, 17, 17, 17, 17, 17}}};
 // right, left, top, bottom, front, back
 
 // Lookup function to get the texture atlas index for a given block and face.
@@ -155,18 +180,16 @@ uint8_t faceTexIndexLookup(uint8_t blockID, int face)
     }
     return 26; // wierd purple block
 }
-const glm::vec3 faceVertices[6][4] = {
+const glm::ivec3 faceVertices[6][4] = {
     // Right (+X)
-    {{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 0.0f}},
+    {{1, 0, 0}, {1, 0, 1}, {1, 1, 1}, {1, 1, 0}},
     // Left (-X)
-    {{0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 1.0f}},
+    {{0, 0, 1}, {0, 0, 0}, {0, 1, 0}, {0, 1, 1}},
     // Top (+Y)
-    {{0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
+    {{0, 1, 0}, {1, 1, 0}, {1, 1, 1}, {0, 1, 1}},
     // Bottom (-Y)
-    {{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}},
+    {{0, 0, 1}, {1, 0, 1}, {1, 0, 0}, {0, 0, 0}},
     // Front (+Z)
-    {{0.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 1.0f}},
+    {{0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}},
     // Back (-Z)
-    {{1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}}
-};
-
+    {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};
