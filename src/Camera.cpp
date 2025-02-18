@@ -1,12 +1,12 @@
 #include "Camera.h"
 
-Camera::Camera() : cameraPos(glm::vec3(0.0f, 5.0f, 0.0f)),
-                   cameraFront(glm::vec3(0.0f, 0.0f, 1.0f)),
-                   cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)),
+Camera::Camera(Window &window) : cameraPos(glm::vec3(0.0f, 5.0f, 0.0f)),
+                   cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)),
+                   cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)), window(window),
                    yaw(-90.0f),
                    pitch(0.0f),
-                   lastX(WIN_WIDTH / 2.0f),
-                   lastY(WIN_HEIGHT / 2.0f),
+                   lastX(window.getWidth() / 2.0f),
+                   lastY(window.getHeight() / 2.0f),
                    firstMouse(true),
                    deltaTime(0.0f),
                    lastFrame(0.0f),

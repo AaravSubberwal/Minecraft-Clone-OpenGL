@@ -8,18 +8,17 @@
 #include "Renderer.h"
 #include "shader.h"
 #include "Camera.h"
+#include "Window.h"
 
 #define CHUNK_HEIGHT 128
 #define CHUNK_SIZE 16
-#define WIN_WIDTH 2560
-#define WIN_HEIGTH 1600
+
 #define RIGHT 0
 #define LEFT 1
 #define TOP 2
 #define BOTTOM 3
 #define FRONT 4
 #define BACK 5
-
 
 struct Vertex
 {
@@ -30,7 +29,7 @@ struct Vertex
 class Chunk
 {
 private:
-    int chunkX, chunkY, chunkZ; // Chunk corner coordinate. Figure out which one!!
+    int chunkX, chunkY, chunkZ;                              // Chunk corner coordinate. Figure out which one!!
     uint8_t blockdata[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE]; // ~32KB per chunk
 
     GLuint vao, vbo, ebo;
@@ -53,17 +52,18 @@ public:
 class World
 {
 private:
+    Window window;
     Shader shader;
     Texture atlas;
     Camera camera;
-    GLFWwindow *window;
-    
+
     Chunk chunk;
 
 public:
-    World(GLFWwindow *window);
+    World();
     ~World() = default;
     void render();
+    int shouldclose();
 };
 
 // External declarations for texture mapping and face vertices.

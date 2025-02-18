@@ -1,18 +1,18 @@
 #pragma once
 
 #include "shader.h"
-#include <GLFW/glfw3.h>
-
-#define WIN_WIDTH 2560
-#define WIN_HEIGHT 1600
+#include "Window.h"
 
 class Camera
 {
 public:
+    Window &window;
     void processKeyboardInput(GLFWwindow *window);
     static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
     glm::mat4 view;
-    Camera();
+
+    Camera(Window &window);
+    ~Camera() = default;
 
 private:
     // Camera variables

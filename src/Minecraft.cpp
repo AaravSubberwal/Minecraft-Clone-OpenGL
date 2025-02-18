@@ -1,10 +1,10 @@
 #include "Minecraft.h"
 
-World::World(GLFWwindow *window) : shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"), window(window),
-                                   atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), chunk(0.0f, 0.0f, 0.0f)
+World::World() : shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+                                   atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), chunk(0.0f, 0.0f, 0.0f),camera(window)
 {
-    glfwSetCursorPosCallback(window, Camera::mouse_callback);
-    glfwSetWindowUserPointer(window, &camera);
+    glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
+    glfwSetWindowUserPointer(window.p_GLFWwindow(), &camera);
 
     enableDebugging();
     glEnable(GL_DEPTH_TEST);
@@ -15,7 +15,7 @@ World::World(GLFWwindow *window) : shader("C:/Users/Aarav/Desktop/Projects/Minec
 
     atlas.bind();
 
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIN_WIDTH / (float)WIN_HEIGTH, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)window.getWidth() / (float)window.getHeight(), 0.1f, 100.0f);
 
     glm::mat4 model = glm::mat4(1.0f);
 
@@ -33,13 +33,18 @@ void World::render()
     glClearColor(127.0f / 255.0f, 178.0f / 255.0f, 255.0f / 255.0f, 1.0f); // skyyy
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    camera.processKeyboardInput(window);
+    camera.processKeyboardInput(window.p_GLFWwindow());
     shader.setUniformMatrix4fv("u_view", camera.view);
 
     chunk.render();
 
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(window.p_GLFWwindow());
     glfwPollEvents();
+}
+
+int World::shouldclose()
+{
+    return glfwWindowShouldClose(window.p_GLFWwindow());
 }
 
 Chunk::Chunk(float x, float y, float z) : chunkX(x), chunkY(y), chunkZ(z)
@@ -120,7 +125,7 @@ bool Chunk::isFaceVisible(uint8_t i, uint8_t j, uint8_t k, int face) const
     // Only render if the adjacent block is air (0)
     return blockdata[ni][nj][nk] == 0;
 }
- 
+
 void Chunk::uploadBuffers()
 {
     glGenVertexArrays(1, &vao);
@@ -134,7 +139,6 @@ void Chunk::uploadBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(uint32_t), indices.data(), GL_STATIC_DRAW);
 
-    // Use glVertexAttribIPointer for integer attributes
     glVertexAttribIPointer(0, 3, GL_INT, sizeof(Vertex), (void *)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
 
@@ -163,11 +167,12 @@ void Chunk::setFlat()
 
 // a Hashmap that maps BlockID to an array of texture indexes which correspond to each face of the block
 const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures = {
-    {1, {3, 3, 0, 2, 3, 3}}, // grass_block
-    {2, {1, 1, 1, 1, 1, 1}}, // stone
-    {3, {2, 2, 2, 2, 2, 2}}, // dirt
-    {4, {4, 4, 4, 4, 4, 4}}, // oak planks
-    {5, {17, 17, 17, 17, 17, 17}}};
+    {1, {3, 3, 0, 2, 3, 3}},      // grass_block
+    {2, {1, 1, 1, 1, 1, 1}},      // stone
+    {3, {2, 2, 2, 2, 2, 2}},      // dirt
+    {4, {4, 4, 4, 4, 4, 4}},      // oak planks
+    {5, {17, 17, 17, 17, 17, 17}} // bedrock
+};
 // right, left, top, bottom, front, back
 
 // Lookup function to get the texture atlas index for a given block and face.
@@ -180,6 +185,7 @@ uint8_t faceTexIndexLookup(uint8_t blockID, int face)
     }
     return 26; // wierd purple block
 }
+
 const glm::ivec3 faceVertices[6][4] = {
     // Right (+X)
     {{1, 0, 0}, {1, 0, 1}, {1, 1, 1}, {1, 1, 0}},

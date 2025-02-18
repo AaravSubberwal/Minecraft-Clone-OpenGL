@@ -6,12 +6,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SOURCES
     src/main.cpp
-    src/GLbuffers.cpp
     src/Renderer.cpp
     src/shader.cpp
     src/Minecraft.cpp
     src/textures.cpp
     src/Camera.cpp
+    src/Window.cpp
     src/vendor/stb_image.cpp
     src/vendor/glad.c
 )
