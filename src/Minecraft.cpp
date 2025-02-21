@@ -1,7 +1,8 @@
 #include "Minecraft.h"
 
-World::World() : shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
-                                   atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), chunk(0.0f, 0.0f, 0.0f),camera(window)
+World::World()
+    : window(), camera(window), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+      atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), world_Map()
 {
     glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
     glfwSetWindowUserPointer(window.p_GLFWwindow(), &camera);
@@ -24,8 +25,15 @@ World::World() : shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/
     shader.setUniform1i("u_atlas", 0);
     shader.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
 
-    chunk.setFlat();
-    chunk.buildMesh();
+    // set the logic for world type here
+    // for now each chunk is the same and is flat
+    addChunk({0, 0, 0});
+    addChunk({16, 0, 0});
+    getChunk({0, 0, 0})->setFlat();
+    getChunk({16, 0, 0})->setFlat();
+    getChunk({0, 0, 0})->buildMesh();
+    getChunk({16, 0, 0})->buildMesh();
+    // build mesh acc to player's position
 }
 
 void World::render()
@@ -36,18 +44,44 @@ void World::render()
     camera.processKeyboardInput(window.p_GLFWwindow());
     shader.setUniformMatrix4fv("u_view", camera.view);
 
-    chunk.render();
+    // figure out which chunks need to be renderred, implement frustum culling here as well
+    getChunk({0, 0, 0})->render(); // build mesh acc to player's position
+    getChunk({16, 0, 0})->render();
 
     glfwSwapBuffers(window.p_GLFWwindow());
     glfwPollEvents();
 }
 
-int World::shouldclose()
+void World::addChunk(const glm::ivec3 &position)
+{
+    world_Map.try_emplace({position.x, position.y, position.z}, std::make_unique<Chunk>(position.x, position.y, position.z));
+}
+
+void World::removeChunk(const glm::ivec3 &position)
+{
+    world_Map.erase({position.x, position.y, position.z});
+}
+
+Chunk *World::getChunk(const glm::ivec3 &position)
+{
+    auto it = world_Map.find({position.x, position.y, position.z});
+    if (it != world_Map.end())
+    {
+        return it->second.get(); // Return raw pointer to the Chunk
+    }
+    return nullptr;
+}
+
+bool World::hasChunk(const glm::ivec3 &position) const
+{
+    return world_Map.find({position.x, position.y, position.z}) != world_Map.end();
+}
+int World::shouldClose()
 {
     return glfwWindowShouldClose(window.p_GLFWwindow());
 }
 
-Chunk::Chunk(float x, float y, float z) : chunkX(x), chunkY(y), chunkZ(z)
+Chunk::Chunk(int x, int y, int z) : chunkX(x), chunkY(y), chunkZ(z)
 {
     memset(blockdata, 0, sizeof(blockdata));
 }
@@ -160,7 +194,8 @@ void Chunk::setFlat()
         {
             blockdata[x][0][z] = 5;
             blockdata[x][1][z] = 3;
-            blockdata[x][2][z] = 1;
+            blockdata[x][2][z] = 3;
+            blockdata[x][3][z] = 1;
         }
     }
 }

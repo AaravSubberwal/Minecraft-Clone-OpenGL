@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <array>
 #include <vector>
+#include <memory>
 
 #include "textures.h"
 #include "Renderer.h"
@@ -26,6 +27,31 @@ struct Vertex
     uint8_t texIndex;
 };
 
+struct chunkPos {
+    int x, y, z;
+    
+    // Add equality operator for unordered_map
+    bool operator==(const chunkPos& other) const {
+        return x == other.x && y == other.y && z == other.z;
+    }
+};
+
+// Add hash function by specializing std::hash
+namespace std {
+    template<>
+    struct hash<chunkPos> {
+        size_t operator()(const chunkPos& pos) const {
+            // Combine the hashes of x, y, and z
+            size_t h1 = std::hash<int>{}(pos.x);
+            size_t h2 = std::hash<int>{}(pos.y);
+            size_t h3 = std::hash<int>{}(pos.z);
+            
+            // You can use any hash combining function. Here's a simple one:
+            return h1 ^ (h2 << 1) ^ (h3 << 2);
+        }
+    };
+}
+
 class Chunk
 {
 private:
@@ -41,8 +67,11 @@ private:
     void uploadBuffers();
 
 public:
-    Chunk(float x, float y, float z); // Constructor: position in world space.
+    Chunk(int x, int y, int z); // Constructor: position in world space.
     ~Chunk();
+
+    Chunk(const Chunk &) = delete; //disable copying
+    Chunk &operator=(const Chunk &) = delete;
 
     void buildMesh();
     void setFlat();
@@ -57,17 +86,21 @@ private:
     Texture atlas;
     Camera camera;
 
-    Chunk chunk;
+    std::unordered_map<chunkPos, std::unique_ptr<Chunk>> world_Map;
+
+    void addChunk(const glm::ivec3& position);
+    void removeChunk(const glm::ivec3& position);
+    Chunk* getChunk(const glm::ivec3& position);
+    bool hasChunk(const glm::ivec3& position) const;
 
 public:
     World();
     ~World() = default;
     void render();
-    int shouldclose();
+    int shouldClose();
 };
 
-// External declarations for texture mapping and face vertices.
 extern const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures;
 uint8_t faceTexIndexLookup(uint8_t blockID, int face);
-
 extern const glm::ivec3 faceVertices[6][4];
+

@@ -3,7 +3,7 @@
 int main()
 {
     World world;
-    while (!world.shouldclose())
+    while (!world.shouldClose())
     {
         world.render();
     }

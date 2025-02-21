@@ -14,6 +14,9 @@ public:
     Camera(Window &window);
     ~Camera() = default;
 
+    inline void teleport(float x, float y, float z) { cameraPos = glm::vec3(x, y, z); }
+    inline glm::vec3 getPlayerPos() { return cameraPos; }
+
 private:
     // Camera variables
     glm::vec3 cameraPos;   // Initial camera position
