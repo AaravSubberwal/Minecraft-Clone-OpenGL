@@ -1,7 +1,7 @@
 #include "Camera.h"
 
-Camera::Camera(Window &window) : cameraPos(glm::vec3(0.0f, 5.0f, 0.0f)),
-                   cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)),
+Camera::Camera(Window &window, uint8_t render_Distance) : cameraPos(glm::vec3(0.0f, 5.0f, 0.0f)),
+                   cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)), render_Distance(render_Distance),
                    cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)), window(window),
                    yaw(-90.0f),
                    pitch(0.0f),

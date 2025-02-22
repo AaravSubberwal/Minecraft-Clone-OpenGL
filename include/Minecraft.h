@@ -4,6 +4,7 @@
 #include <array>
 #include <vector>
 #include <memory>
+#include <iostream>
 
 #include "textures.h"
 #include "Renderer.h"
@@ -28,11 +29,11 @@ struct Vertex
 };
 
 struct chunkPos {
-    int x, y, z;
+    int x, z;
     
     // Add equality operator for unordered_map
     bool operator==(const chunkPos& other) const {
-        return x == other.x && y == other.y && z == other.z;
+        return x == other.x  && z == other.z;
     }
 };
 
@@ -43,11 +44,10 @@ namespace std {
         size_t operator()(const chunkPos& pos) const {
             // Combine the hashes of x, y, and z
             size_t h1 = std::hash<int>{}(pos.x);
-            size_t h2 = std::hash<int>{}(pos.y);
             size_t h3 = std::hash<int>{}(pos.z);
             
             // You can use any hash combining function. Here's a simple one:
-            return h1 ^ (h2 << 1) ^ (h3 << 2);
+            return h1  ^ (h3 << 2);
         }
     };
 }
@@ -55,7 +55,7 @@ namespace std {
 class Chunk
 {
 private:
-    int chunkX, chunkY, chunkZ;                              // Chunk corner coordinate. Figure out which one!!
+    int chunkX, chunkZ;                              // Chunk corner coordinate. Figure out which one!!
     uint8_t blockdata[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE]; // ~32KB per chunk
 
     GLuint vao, vbo, ebo;
@@ -67,7 +67,7 @@ private:
     void uploadBuffers();
 
 public:
-    Chunk(int x, int y, int z); // Constructor: position in world space.
+    Chunk(int x, int z); // Constructor: position in world space.
     ~Chunk();
 
     Chunk(const Chunk &) = delete; //disable copying
@@ -88,11 +88,14 @@ private:
 
     std::unordered_map<chunkPos, std::unique_ptr<Chunk>> world_Map;
 
-    void addChunk(const glm::ivec3& position);
-    void removeChunk(const glm::ivec3& position);
-    Chunk* getChunk(const glm::ivec3& position);
-    bool hasChunk(const glm::ivec3& position) const;
+    void addChunk(const glm::ivec2& position);
+    void removeChunk(const glm::ivec2& position);
+    Chunk* getChunk(const glm::ivec2& position);
+    bool hasChunk(const glm::ivec2& position) const;
 
+    void draw();
+    void genChunks();
+    
 public:
     World();
     ~World() = default;
