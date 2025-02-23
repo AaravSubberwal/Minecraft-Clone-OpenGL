@@ -1,8 +1,8 @@
 #include "Minecraft.h"
 
 World::World()
-    : window(), camera(window, 3), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
-      atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), world_Map()
+    : window(), camera(window, 5), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+      atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png")
 {
     glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
     glfwSetWindowUserPointer(window.p_GLFWwindow(), &camera);
@@ -27,6 +27,8 @@ World::World()
     shader.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
 
     renderDistance = camera.getRenderDistance();
+    frames = 0;
+    activeChunks.reserve((2 * renderDistance + 1) * (2 * renderDistance + 1));
 }
 
 void World::render()
@@ -43,21 +45,22 @@ void World::render()
     glfwPollEvents();
 }
 
-// figure out which chunks need to be renderred, implement frustum culling here as well
 void World::draw()
 {
     glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
-
+    frames ++;
+    
     if (camera.didPlayerChunkChange)
-    {
+    {//rn some of the chunks in world_map will be out of render distance and if they're contents havent been modified we can delete them
         for (int x = currentPlayerChunk.x - renderDistance; x <= currentPlayerChunk.x + renderDistance; x++)
         {
-            for (int z = currentPlayerChunk.y - renderDistance; z <= currentPlayerChunk.y + renderDistance; z++)
+            for (int y = currentPlayerChunk.y - renderDistance; y <= currentPlayerChunk.y + renderDistance; y++)
             {
-                if (!hasChunk({x, z})) // Only add new chunks
+                glm::ivec2 position = glm::ivec2(x,y);
+                if (!hasChunk(position)) // Only add new chunks
                 {
-                    addChunk({x, z});
-                    Chunk *chunk = getChunk({x, z});
+                    Chunk* chunk = addChunk(position);
+                    chunk->withinRenderDistance = true;
                     chunk->setFlat();
                     chunk->buildMesh();
                 }
@@ -65,32 +68,51 @@ void World::draw()
         }
     }
 
-    for (auto &pair : world_Map)
+    for (auto &chunk : activeChunks)
     {
-        chunkPos chunk = pair.first;
-        if (chunk.x <= currentPlayerChunk.x + renderDistance && chunk.x >= currentPlayerChunk.x - renderDistance && chunk.z <= currentPlayerChunk.y + renderDistance && chunk.z >= currentPlayerChunk.y - renderDistance)
+        glm::vec2 position = chunk->getPosition();
+        if (position.x <= currentPlayerChunk.x + renderDistance && position.x >= currentPlayerChunk.x - renderDistance && position.y <= currentPlayerChunk.y + renderDistance && position.y >= currentPlayerChunk.y - renderDistance)
         {
-            if (camera.isChunkInFrustum(chunk)) // Implement frustum check
+            if (camera.isChunkInFrustum(position)) // Implement frustum check
             {
-                pair.second->render();
+                chunk->render();
             }
         }
     }
 }
 
-void World::addChunk(const glm::ivec2 &position)
+Chunk* World::addChunk(const glm::ivec2 &position)
 {
-    world_Map.try_emplace({position.x, position.y}, std::make_unique<Chunk>(position.x, position.y));
+    auto chunk = std::make_unique<Chunk>(position);
+    Chunk* chunkPtr = chunk.get();
+    world_Map.try_emplace(position, std::move(chunk));
+    activeChunks.emplace_back(chunkPtr); 
+    return chunkPtr;
 }
 
 void World::removeChunk(const glm::ivec2 &position)
 {
-    world_Map.erase({position.x, position.y});
+    auto it = world_Map.find(position);
+    if (it != world_Map.end())
+    {
+        Chunk* chunkPtr = it->second.get();
+        for (size_t i = 0; i < activeChunks.size(); i++)
+        {
+            if (activeChunks[i] == chunkPtr)
+            {
+                activeChunks[i] = activeChunks.back();
+                activeChunks.pop_back();
+                break; 
+            }
+        }
+        world_Map.erase(it); 
+    }
 }
+
 
 Chunk *World::getChunk(const glm::ivec2 &position) const
 {
-    auto it = world_Map.find({position.x, position.y});
+    auto it = world_Map.find(position);
     if (it != world_Map.end())
     {
         return it->second.get(); // Return raw pointer to the Chunk
@@ -100,7 +122,7 @@ Chunk *World::getChunk(const glm::ivec2 &position) const
 
 bool World::hasChunk(const glm::ivec2 &position) const
 {
-    return world_Map.find({position.x, position.y}) != world_Map.end();
+    return world_Map.find(position) != world_Map.end();
 }
 
 int World::shouldClose()
@@ -108,8 +130,12 @@ int World::shouldClose()
     return glfwWindowShouldClose(window.p_GLFWwindow());
 }
 
-Chunk::Chunk(int x, int z) : chunkX(x), chunkZ(z)
+//======================================================================================================================
+
+Chunk::Chunk(const glm::ivec2 &position): position(position)
 {
+    beenModified = false;
+    withinRenderDistance = true;
     memset(blockdata, 0, sizeof(blockdata));
 }
 
@@ -143,7 +169,7 @@ void Chunk::buildMesh() // called when chunk loads for the first time and when r
                     for (int v = 0; v < 4; v++)
                     {
                         Vertex vertex;
-                        vertex.position = glm::ivec3((chunkX * 16) + i, j, (chunkZ * 16) + k) + faceVertices[face][v];
+                        vertex.position = glm::ivec3((position.x * 16) + i, j, (position.y * 16) + k) + faceVertices[face][v];
                         vertex.texIndex = faceTexIndexLookup(blockID, face);
                         vertices.push_back(vertex);
                     }

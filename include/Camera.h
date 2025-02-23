@@ -3,16 +3,10 @@
 #include "shader.h"
 #include "Window.h"
 
-struct chunkPos
-{
-    int x, z;
+#include <array>
 
-    // Add equality operator for unordered_map
-    bool operator==(const chunkPos &other) const
-    {
-        return x == other.x && z == other.z;
-    }
-};
+#define CHUNK_HEIGHT 128
+#define CHUNK_SIZE 16
 
 class Camera
 {
@@ -37,6 +31,9 @@ private:
     uint8_t render_Distance;
     glm::mat4 projection;
     glm::ivec2 currentChunk;
+    std::array<glm::vec4, 6> frustumPlanes;
+
+    void updateFrustumPlanes();
 
 public:
     Window &window;
@@ -53,6 +50,6 @@ public:
     inline glm::vec2 getPlayerChunk() { return currentChunk; }
     inline void recieveProjection(glm::mat4 proj) { projection = proj; }
 
-    bool isChunkInFrustum(chunkPos coord);
+    bool isChunkInFrustum(const glm::ivec2 &position);
     bool didPlayerChunkChange;
 };

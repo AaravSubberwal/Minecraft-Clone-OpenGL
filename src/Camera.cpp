@@ -12,9 +12,45 @@ Camera::Camera(Window &window, uint8_t render_Distance) : cameraPos(glm::vec3(0.
                                                           lastFrame(0.0f),
                                                           currentFrame(0), currentChunk(glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16))), view(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)) {}
 
-bool Camera::isChunkInFrustum(chunkPos coord)
+bool Camera::isChunkInFrustum(const glm::ivec2 &position)
 {
-    return true;
+    // Get chunk AABB using defined constants
+    glm::vec3 minCorner(position.x * CHUNK_SIZE, 0, position.y * CHUNK_SIZE);
+    glm::vec3 maxCorner(minCorner.x + CHUNK_SIZE, CHUNK_HEIGHT, minCorner.z + CHUNK_SIZE);
+
+    // Check if AABB is inside the frustum
+    for (const auto &plane : frustumPlanes)
+    {
+        glm::vec3 normal(plane.x, plane.y, plane.z);
+        float d = plane.w;
+
+        // Find the *most outside* corner in the plane’s normal direction
+        glm::vec3 positiveCorner = {
+            normal.x > 0 ? maxCorner.x : minCorner.x,
+            normal.y > 0 ? maxCorner.y : minCorner.y,
+            normal.z > 0 ? maxCorner.z : minCorner.z};
+
+        // If this corner is outside, discard the chunk
+        if (glm::dot(normal, positiveCorner) + d < 0)
+            return false;
+    }
+
+    return true; // Chunk is inside the frustum
+}
+
+void Camera::updateFrustumPlanes()
+{
+    glm::mat4 vp = projection * view;
+    frustumPlanes[0] = glm::vec4(vp[0][3] + vp[0][0], vp[1][3] + vp[1][0], vp[2][3] + vp[2][0], vp[3][3] + vp[3][0]); // Left
+    frustumPlanes[1] = glm::vec4(vp[0][3] - vp[0][0], vp[1][3] - vp[1][0], vp[2][3] - vp[2][0], vp[3][3] - vp[3][0]); // Right
+    frustumPlanes[2] = glm::vec4(vp[0][3] + vp[0][1], vp[1][3] + vp[1][1], vp[2][3] + vp[2][1], vp[3][3] + vp[3][1]); // Bottom
+    frustumPlanes[3] = glm::vec4(vp[0][3] - vp[0][1], vp[1][3] - vp[1][1], vp[2][3] - vp[2][1], vp[3][3] - vp[3][1]); // Top
+    frustumPlanes[4] = glm::vec4(vp[0][3] + vp[0][2], vp[1][3] + vp[1][2], vp[2][3] + vp[2][2], vp[3][3] + vp[3][2]); // Near
+    frustumPlanes[5] = glm::vec4(vp[0][3] - vp[0][2], vp[1][3] - vp[1][2], vp[2][3] - vp[2][2], vp[3][3] - vp[3][2]); // Far
+
+    // Normalize planes
+    for (auto &plane : frustumPlanes)
+        plane /= glm::length(glm::vec3(plane)); // Normalize the normal (A, B, C)
 }
 
 void Camera::processKeyboardInput(GLFWwindow *window)
@@ -69,10 +105,12 @@ void Camera::processKeyboardInput(GLFWwindow *window)
     {
         cameraPos -= cameraSpeed * cameraUp;
     }
-    if(glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16)) != currentChunk){
+    if (glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16)) != currentChunk)
+    {
         didPlayerChunkChange = true;
     }
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    updateFrustumPlanes();
 }
 
 void Camera::mouse_callback(GLFWwindow *window, double xpos, double ypos)
@@ -109,4 +147,5 @@ void Camera::mouse_callback(GLFWwindow *window, double xpos, double ypos)
     front.y = sin(glm::radians(camera->pitch));
     front.z = sin(glm::radians(camera->yaw)) * cos(glm::radians(camera->pitch));
     camera->cameraFront = glm::normalize(front);
+    camera->updateFrustumPlanes();
 }
