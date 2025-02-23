@@ -3,22 +3,19 @@
 #include "shader.h"
 #include "Window.h"
 
+struct chunkPos
+{
+    int x, z;
+
+    // Add equality operator for unordered_map
+    bool operator==(const chunkPos &other) const
+    {
+        return x == other.x && z == other.z;
+    }
+};
+
 class Camera
 {
-public:
-    Window &window;
-    void processKeyboardInput(GLFWwindow *window);
-    static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
-    glm::mat4 view;
-
-    Camera(Window &window, uint8_t render_Distance);
-    ~Camera() = default;
-
-    inline void teleport(float x, float y, float z) { cameraPos = glm::vec3(x, y, z); }
-    inline glm::vec3 getPlayerPos() { return cameraPos; }
-    inline uint8_t getRenderDistance(){return render_Distance;}
-    inline glm::vec2 getPlayerChunk(){return glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16));}
-
 private:
     // Camera variables
     glm::vec3 cameraPos;   // Initial camera position
@@ -38,4 +35,24 @@ private:
     float currentFrame;
 
     uint8_t render_Distance;
+    glm::mat4 projection;
+    glm::ivec2 currentChunk;
+
+public:
+    Window &window;
+    void processKeyboardInput(GLFWwindow *window);
+    static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+    glm::mat4 view;
+
+    Camera(Window &window, uint8_t render_Distance);
+    ~Camera() = default;
+
+    inline void teleport(float x, float y, float z) { cameraPos = glm::vec3(x, y, z); }
+    inline glm::vec3 getPlayerPos() { return cameraPos; }
+    inline uint8_t getRenderDistance() { return render_Distance; }
+    inline glm::vec2 getPlayerChunk() { return currentChunk; }
+    inline void recieveProjection(glm::mat4 proj) { projection = proj; }
+
+    bool isChunkInFrustum(chunkPos coord);
+    bool didPlayerChunkChange;
 };

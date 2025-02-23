@@ -28,14 +28,7 @@ struct Vertex
     uint8_t texIndex;
 };
 
-struct chunkPos {
-    int x, z;
-    
-    // Add equality operator for unordered_map
-    bool operator==(const chunkPos& other) const {
-        return x == other.x  && z == other.z;
-    }
-};
+
 
 // Add hash function by specializing std::hash
 namespace std {
@@ -87,14 +80,15 @@ private:
     Camera camera;
 
     std::unordered_map<chunkPos, std::unique_ptr<Chunk>> world_Map;
+    glm::ivec2 lastPlayerChunk = glm::ivec2(-9999);
+    uint8_t renderDistance;
 
     void addChunk(const glm::ivec2& position);
     void removeChunk(const glm::ivec2& position);
-    Chunk* getChunk(const glm::ivec2& position);
+    Chunk* getChunk(const glm::ivec2& position)const;
     bool hasChunk(const glm::ivec2& position) const;
 
     void draw();
-    void genChunks();
     
 public:
     World();

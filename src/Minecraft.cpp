@@ -1,7 +1,7 @@
 #include "Minecraft.h"
 
 World::World()
-    : window(), camera(window, 5), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+    : window(), camera(window, 3), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
       atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), world_Map()
 {
     glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
@@ -17,6 +17,7 @@ World::World()
     atlas.bind();
 
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)window.getWidth() / (float)window.getHeight(), 0.1f, 500.0f);
+    camera.recieveProjection(projection);
 
     glm::mat4 model = glm::mat4(1.0f);
 
@@ -25,11 +26,7 @@ World::World()
     shader.setUniform1i("u_atlas", 0);
     shader.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
 
-    // set the logic for world type here
-    // for now each chunk is the same and is flat
-    genChunks();
-
-    // build mesh acc to player's position
+    renderDistance = camera.getRenderDistance();
 }
 
 void World::render()
@@ -49,36 +46,37 @@ void World::render()
 // figure out which chunks need to be renderred, implement frustum culling here as well
 void World::draw()
 {
-    glm::ivec2 playerChunk = camera.getPlayerChunk();
+    glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
+
+    if (camera.didPlayerChunkChange)
+    {
+        for (int x = currentPlayerChunk.x - renderDistance; x <= currentPlayerChunk.x + renderDistance; x++)
+        {
+            for (int z = currentPlayerChunk.y - renderDistance; z <= currentPlayerChunk.y + renderDistance; z++)
+            {
+                if (!hasChunk({x, z})) // Only add new chunks
+                {
+                    addChunk({x, z});
+                    Chunk *chunk = getChunk({x, z});
+                    chunk->setFlat();
+                    chunk->buildMesh();
+                }
+            }
+        }
+    }
 
     for (auto &pair : world_Map)
     {
-        int dx = pair.first.x - playerChunk.x;
-        int dz = pair.first.z - playerChunk.y;
-        if ((dx * dx + dz * dz) < (camera.getRenderDistance() * camera.getRenderDistance()))
+        chunkPos chunk = pair.first;
+        if (chunk.x <= currentPlayerChunk.x + renderDistance && chunk.x >= currentPlayerChunk.x - renderDistance && chunk.z <= currentPlayerChunk.y + renderDistance && chunk.z >= currentPlayerChunk.y - renderDistance)
         {
-            pair.second->render();
+            if (camera.isChunkInFrustum(chunk)) // Implement frustum check
+            {
+                pair.second->render();
+            }
         }
     }
 }
-
-void World::genChunks()
-{
-    uint8_t renderDistance = camera.getRenderDistance();
-    glm::ivec2 playerChunk = camera.getPlayerChunk();
-
-    for (int x = playerChunk.x - renderDistance; x <= playerChunk.x + renderDistance; x++)
-    {
-        for (int z = playerChunk.y - renderDistance; z <= playerChunk.y + renderDistance; z++)
-        {
-            addChunk({x, z});
-            Chunk* chunk = getChunk({x, z});
-            chunk->setFlat();
-            chunk->buildMesh();
-        }
-    }
-}
-
 
 void World::addChunk(const glm::ivec2 &position)
 {
@@ -87,10 +85,10 @@ void World::addChunk(const glm::ivec2 &position)
 
 void World::removeChunk(const glm::ivec2 &position)
 {
-    world_Map.erase({position.x,  position.y});
+    world_Map.erase({position.x, position.y});
 }
 
-Chunk *World::getChunk(const glm::ivec2 &position)
+Chunk *World::getChunk(const glm::ivec2 &position) const
 {
     auto it = world_Map.find({position.x, position.y});
     if (it != world_Map.end())

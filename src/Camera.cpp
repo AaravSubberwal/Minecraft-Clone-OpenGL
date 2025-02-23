@@ -1,23 +1,29 @@
 #include "Camera.h"
 
 Camera::Camera(Window &window, uint8_t render_Distance) : cameraPos(glm::vec3(0.0f, 5.0f, 0.0f)),
-                   cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)), render_Distance(render_Distance),
-                   cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)), window(window),
-                   yaw(-90.0f),
-                   pitch(0.0f),
-                   lastX(window.getWidth() / 2.0f),
-                   lastY(window.getHeight() / 2.0f),
-                   firstMouse(true),
-                   deltaTime(0.0f),
-                   lastFrame(0.0f),
-                   currentFrame(0),
-                   view(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)) {}
+                                                          cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)), render_Distance(render_Distance),
+                                                          cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)), window(window),
+                                                          yaw(-90.0f),
+                                                          pitch(0.0f),
+                                                          lastX(window.getWidth() / 2.0f),
+                                                          lastY(window.getHeight() / 2.0f),
+                                                          firstMouse(true),
+                                                          deltaTime(0.0f),
+                                                          lastFrame(0.0f),
+                                                          currentFrame(0), currentChunk(glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16))), view(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)) {}
+
+bool Camera::isChunkInFrustum(chunkPos coord)
+{
+    return true;
+}
 
 void Camera::processKeyboardInput(GLFWwindow *window)
 {
     currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
+    currentChunk = glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16));
+    didPlayerChunkChange = true;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     {
@@ -62,6 +68,9 @@ void Camera::processKeyboardInput(GLFWwindow *window)
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
     {
         cameraPos -= cameraSpeed * cameraUp;
+    }
+    if(glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16)) != currentChunk){
+        didPlayerChunkChange = true;
     }
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 }
