@@ -105,6 +105,7 @@ void Camera::processKeyboardInput(GLFWwindow *window)
     {
         cameraPos -= cameraSpeed * cameraUp;
     }
+    
     if (glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16)) != currentChunk)
     {
         didPlayerChunkChange = true;

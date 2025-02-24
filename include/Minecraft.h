@@ -20,13 +20,15 @@
 #define FRONT 4
 #define BACK 5
 
+class World;
+
 class Chunk
 {
 private:
     glm::ivec2 position;
-    uint8_t blockdata[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE]; // ~32KB per chunk
 
     GLuint vao, vbo, ebo;
+    World *world;
 
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -35,7 +37,9 @@ private:
     void uploadBuffers();
 
 public:
-    Chunk(const glm::ivec2 &position); // Constructor: position in world space.
+    uint8_t blockdata[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE]; // ~32KB per chunk
+
+    Chunk(const glm::ivec2 &position, World *world); // Constructor: position in world space.
     ~Chunk();
 
     bool withinRenderDistance;
@@ -43,7 +47,7 @@ public:
     Chunk(const Chunk &) = delete; // disable copying
     Chunk &operator=(const Chunk &) = delete;
 
-    inline glm::ivec2 getPosition() { return position; }
+    inline const glm::ivec2 getPosition() { return position; }
     void buildMesh();
     void setFlat();
     void render();
@@ -64,12 +68,12 @@ private:
 
     Chunk *addChunk(const glm::ivec2 &position);
     void removeChunk(const glm::ivec2 &position);
-    Chunk *getChunk(const glm::ivec2 &position) const;
     bool hasChunk(const glm::ivec2 &position) const;
 
     void draw();
 
 public:
+    Chunk *getChunk(const glm::ivec2 &position) const;
     World();
     ~World() = default;
     void render();
