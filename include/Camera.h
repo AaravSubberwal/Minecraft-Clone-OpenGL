@@ -31,6 +31,7 @@ private:
     uint8_t render_Distance;
     glm::mat4 projection;
     glm::ivec2 currentChunk;
+    glm::ivec2 newChunkOffset;
     std::array<glm::vec4, 6> frustumPlanes;
 
     void updateFrustumPlanes();
@@ -49,7 +50,7 @@ public:
     inline uint8_t getRenderDistance() { return render_Distance; }
     inline glm::vec2 getPlayerChunk() { return currentChunk; }
     inline void recieveProjection(glm::mat4 proj) { projection = proj; }
-
+    inline glm::ivec2 getNewChunkOffset() { return newChunkOffset; }
     bool isChunkInFrustum(const glm::ivec2 &position);
     bool didPlayerChunkChange;
 };

@@ -5,7 +5,6 @@
 #include <vector>
 #include <memory>
 #include <iostream>
-#include <unordered_set>
 
 #include "textures.h"
 #include "Renderer.h"
@@ -44,6 +43,7 @@ public:
 
     bool withinRenderDistance;
     bool beenModified;
+
     Chunk(const Chunk &) = delete; // disable copying
     Chunk &operator=(const Chunk &) = delete;
 
@@ -70,7 +70,8 @@ private:
     void removeChunk(const glm::ivec2 &position);
     bool hasChunk(const glm::ivec2 &position) const;
 
-    void draw();
+    void updateChunks(glm::ivec2 offset);
+    void renderChunks();
 
 public:
     Chunk *getChunk(const glm::ivec2 &position) const;

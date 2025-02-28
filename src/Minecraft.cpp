@@ -1,7 +1,7 @@
 #include "Minecraft.h"
 
 World::World()
-    : window(), camera(window, 2), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+    : window(), camera(window, 7), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
       atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png")
 {
     glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
@@ -11,9 +11,9 @@ World::World()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_CULL_FACE); 
-    glCullFace(GL_BACK);   
-    glFrontFace(GL_CCW);   
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
 
     //===========================================================================================================================/
 
@@ -32,51 +32,56 @@ World::World()
     renderDistance = camera.getRenderDistance();
     frames = 0;
     activeChunks.reserve((2 * renderDistance + 1) * (2 * renderDistance + 1));
+    updateChunks(camera.getPlayerChunk());
 }
 
 void World::render()
 {
     glClearColor(127.0f / 255.0f, 178.0f / 255.0f, 255.0f / 255.0f, 1.0f); // skyyy
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+    
     camera.processKeyboardInput(window.p_GLFWwindow());
     shader.setUniformMatrix4fv("u_view", camera.view);
-
-    draw();
+    
+    glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
+    glm::ivec2 newChunkOffset = camera.getNewChunkOffset();
+    
+    if (newChunkOffset != glm::ivec2(0))
+        updateChunks(currentPlayerChunk);
+    renderChunks();
 
     glfwSwapBuffers(window.p_GLFWwindow());
     glfwPollEvents();
 }
 
-void World::draw()
-{
-    glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
-    frames++;
-
-    if (camera.didPlayerChunkChange)
-    { // rn some of the chunks in world_map will be out of render distance and if they're contents havent been modified we can delete them
-        for (int x = currentPlayerChunk.x - renderDistance; x <= currentPlayerChunk.x + renderDistance; x++)
+void World::updateChunks(glm::ivec2 currentPlayerChunk)
+{ // using newChunkOffset calculate which chunks need to be added and removed
+    for (int x = currentPlayerChunk.x - renderDistance; x <= currentPlayerChunk.x + renderDistance; x++)
+    {
+        for (int y = currentPlayerChunk.y - renderDistance; y <= currentPlayerChunk.y + renderDistance; y++)
         {
-            for (int y = currentPlayerChunk.y - renderDistance; y <= currentPlayerChunk.y + renderDistance; y++)
+            glm::ivec2 position = glm::ivec2(x, y);
+            if (!hasChunk(position)) // Only add new chunks
             {
-                glm::ivec2 position = glm::ivec2(x, y);
-                if (!hasChunk(position)) // Only add new chunks
-                {
-                    Chunk *chunk = addChunk(position);
-                    chunk->withinRenderDistance = true;
-                    chunk->setFlat();
-                    chunk->buildMesh();
-                }
+                Chunk *chunk = addChunk(position);
+                chunk->withinRenderDistance = true;
+                chunk->setFlat();
+                chunk->buildMesh();
             }
         }
     }
+}
 
+void World::renderChunks()
+{
+    glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
+    frames++;
     for (auto &chunk : activeChunks)
     {
         glm::vec2 position = chunk->getPosition();
         if (position.x <= currentPlayerChunk.x + renderDistance && position.x >= currentPlayerChunk.x - renderDistance && position.y <= currentPlayerChunk.y + renderDistance && position.y >= currentPlayerChunk.y - renderDistance)
         {
-            if (camera.isChunkInFrustum(position)) // Implement frustum check
+            if (camera.isChunkInFrustum(position)) 
             {
                 chunk->render();
             }
@@ -218,29 +223,33 @@ bool Chunk::isFaceVisible(uint8_t i, uint8_t j, uint8_t k, int face) const
     int neighbor_i = ni;
     int neighbor_k = nk;
 
-    if (ni < 0) {
+    if (ni < 0)
+    {
         neighborPos.x--;
         neighbor_i = CHUNK_SIZE - 1;
     }
-    if (ni >= CHUNK_SIZE) {
+    if (ni >= CHUNK_SIZE)
+    {
         neighborPos.x++;
         neighbor_i = 0;
     }
-    if (nk < 0) {
+    if (nk < 0)
+    {
         neighborPos.y--;
         neighbor_k = CHUNK_SIZE - 1;
     }
-    if (nk >= CHUNK_SIZE) {
+    if (nk >= CHUNK_SIZE)
+    {
         neighborPos.y++;
         neighbor_k = 0;
     }
 
     Chunk *neighborChunk = world->getChunk(neighborPos);
-    if (!neighborChunk) return true; // Assume air if neighbor chunk doesn't exist
+    if (!neighborChunk)
+        return true; // Assume air if neighbor chunk doesn't exist
 
     return neighborChunk->blockdata[neighbor_i][nj][neighbor_k] == 0;
 }
-
 
 void Chunk::uploadBuffers()
 {
@@ -280,8 +289,6 @@ void Chunk::setFlat()
             blockdata[x][3][z] = 1;
         }
     }
-    blockdata[0][5][0] = 1;
-    blockdata[1][5][1] = 1;
 }
 
 // a Hashmap that maps BlockID to an array of texture indexes which correspond to each face of the block
@@ -317,6 +324,5 @@ const glm::ivec3 faceVertices[6][4] = {
     // Front (+Z)
     {{0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}},
     // Back (-Z)
-    {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}
-};
-//bottom-left, bottom-right, top-right, top-left
+    {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};
+// bottom-left, bottom-right, top-right, top-left

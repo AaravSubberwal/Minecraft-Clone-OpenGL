@@ -4,12 +4,12 @@ Camera::Camera(Window &window, uint8_t render_Distance) : cameraPos(glm::vec3(0.
                                                           cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)), render_Distance(render_Distance),
                                                           cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)), window(window),
                                                           yaw(-90.0f),
-                                                          pitch(0.0f),
+                                                          pitch(0.0f), didPlayerChunkChange(false),
                                                           lastX(window.getWidth() / 2.0f),
                                                           lastY(window.getHeight() / 2.0f),
                                                           firstMouse(true),
                                                           deltaTime(0.0f),
-                                                          lastFrame(0.0f),
+                                                          lastFrame(0.0f), newChunkOffset(0),
                                                           currentFrame(0), currentChunk(glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16))), view(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)) {}
 
 bool Camera::isChunkInFrustum(const glm::ivec2 &position)
@@ -59,16 +59,10 @@ void Camera::processKeyboardInput(GLFWwindow *window)
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
     currentChunk = glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16));
-    didPlayerChunkChange = true;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
         glfwSetWindowShouldClose(window, true);
-    }
-
     float cameraSpeed = 5.0f * deltaTime; // Adjust speed based on time
-
-    // Move forward
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -80,36 +74,21 @@ void Camera::processKeyboardInput(GLFWwindow *window)
             cameraPos += cameraSpeed * cameraFront;
         }
     }
-    // Move backward
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    {
         cameraPos -= cameraSpeed * cameraFront;
-    }
-    // Move left
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    {
         cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    }
-    // Move right
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    {
         cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-    }
-    // Move up
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-    {
         cameraPos += cameraSpeed * cameraUp;
-    }
-    // Move down
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    {
         cameraPos -= cameraSpeed * cameraUp;
-    }
-    
-    if (glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16)) != currentChunk)
-    {
+
+    newChunkOffset = glm::ivec2(glm::floor(cameraPos.x / 16), glm::floor(cameraPos.z / 16)) - currentChunk;
+    if (newChunkOffset != glm::ivec2(0))
         didPlayerChunkChange = true;
-    }
+
     view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     updateFrustumPlanes();
 }
