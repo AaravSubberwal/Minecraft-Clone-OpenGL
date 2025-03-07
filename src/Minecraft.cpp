@@ -153,6 +153,7 @@ Chunk::~Chunk() // NO IDEA WHAT WILL HAPPEN IF buildMesh() hasnt been called bef
     glDeleteBuffers(1, &ebo);
 }
 
+//stupid Algoooo greedy meshing pls
 void Chunk::buildMesh() // called when chunk loads for the first time and when reloaded
 {
     vertices.reserve(100);

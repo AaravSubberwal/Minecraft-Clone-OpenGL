@@ -51,6 +51,7 @@ public:
     inline glm::vec2 getPlayerChunk() { return currentChunk; }
     inline void recieveProjection(glm::mat4 proj) { projection = proj; }
     inline glm::ivec2 getNewChunkOffset() { return newChunkOffset; }
+    
     bool isChunkInFrustum(const glm::ivec2 &position);
     bool didPlayerChunkChange;
 };
