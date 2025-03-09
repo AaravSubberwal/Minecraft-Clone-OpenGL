@@ -62,12 +62,12 @@ void Camera::processKeyboardInput(GLFWwindow *window)
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    float cameraSpeed = 5.0f * deltaTime; // Adjust speed based on time
+    float cameraSpeed = 10.0f * deltaTime; // Adjust speed based on time
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     {
         if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
         {
-            cameraPos += 2.0f * cameraSpeed * cameraFront;
+            cameraPos += 5.0f * cameraSpeed * cameraFront;
         }
         else
         {

@@ -1,16 +1,18 @@
 #pragma once
-//https://0fps.net/2012/01/14/an-analysis-of-minecraft-like-engines/
+// https://0fps.net/2012/01/14/an-analysis-of-minecraft-like-engines/
 #include <unordered_map>
 #include <array>
 #include <vector>
 #include <memory>
 #include <iostream>
+#include <random>
 
 #include "textures.h"
 #include "Renderer.h"
 #include "shader.h"
 #include "Camera.h"
 #include "Window.h"
+#include "FastNoiseLite.h"
 
 #define RIGHT 0
 #define LEFT 1
@@ -20,6 +22,7 @@
 #define BACK 5
 
 class World;
+class Chunk;
 
 class Chunk
 {
@@ -27,7 +30,6 @@ private:
     glm::ivec2 position;
 
     GLuint vao, vbo, ebo;
-    World *world;
 
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -38,9 +40,12 @@ private:
 public:
     uint8_t blockdata[CHUNK_SIZE][CHUNK_HEIGHT][CHUNK_SIZE]; // ~32KB per chunk
 
-    Chunk(const glm::ivec2 &position, World *world); // Constructor: position in world space.
+    Chunk(const glm::ivec2 &position);
     ~Chunk();
 
+    static World *world;
+    static FastNoiseLite *noise;
+    
     bool withinRenderDistance;
     bool beenModified;
 
@@ -49,7 +54,7 @@ public:
 
     inline const glm::ivec2 getPosition() { return position; }
     void buildMesh();
-    void setFlat();
+    void genTerrain();
     void render();
 };
 
@@ -60,6 +65,7 @@ private:
     Shader shader;
     Texture atlas;
     Camera camera;
+    FastNoiseLite noise;
 
     std::unordered_map<glm::ivec2, std::unique_ptr<Chunk>> world_Map;
     std::vector<Chunk *> activeChunks;

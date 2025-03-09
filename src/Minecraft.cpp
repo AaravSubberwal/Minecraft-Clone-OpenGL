@@ -1,7 +1,7 @@
 #include "Minecraft.h"
 
 World::World()
-    : window(), camera(window, 7), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+    : window(), camera(window, 10), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
       atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png")
 {
     glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
@@ -32,20 +32,49 @@ World::World()
     renderDistance = camera.getRenderDistance();
     frames = 0;
     activeChunks.reserve((2 * renderDistance + 1) * (2 * renderDistance + 1));
-    updateChunks(camera.getPlayerChunk());
+
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    int randomSeed = rng();
+
+    noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm); // Enable fractal noise
+    noise.SetFractalOctaves(5);    // Number of layers (higher = more detail)
+    noise.SetFractalLacunarity(2.0f); // Controls frequency change per octave
+    noise.SetFractalGain(0.5f);    // Controls amplitude reduction per octave
+    noise.SetFrequency(0.005f);     // Base frequency
+    noise.SetSeed(randomSeed);
+
+
+    Chunk::world = this;
+    Chunk::noise = &noise;
+
+    glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
+    for (int x = currentPlayerChunk.x - renderDistance; x <= currentPlayerChunk.x + renderDistance; x++)
+    {
+        for (int y = currentPlayerChunk.y - renderDistance; y <= currentPlayerChunk.y + renderDistance; y++)
+        {
+            glm::ivec2 position = glm::ivec2(x, y);
+
+            Chunk *chunk = addChunk(position);
+            chunk->withinRenderDistance = true;
+            chunk->genTerrain();
+            chunk->buildMesh();
+        }
+    }
 }
 
 void World::render()
 {
     glClearColor(127.0f / 255.0f, 178.0f / 255.0f, 255.0f / 255.0f, 1.0f); // skyyy
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
     camera.processKeyboardInput(window.p_GLFWwindow());
     shader.setUniformMatrix4fv("u_view", camera.view);
-    
+
     glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
     glm::ivec2 newChunkOffset = camera.getNewChunkOffset();
-    
+
     if (newChunkOffset != glm::ivec2(0))
         updateChunks(currentPlayerChunk);
     renderChunks();
@@ -65,7 +94,7 @@ void World::updateChunks(glm::ivec2 currentPlayerChunk)
             {
                 Chunk *chunk = addChunk(position);
                 chunk->withinRenderDistance = true;
-                chunk->setFlat();
+                chunk->genTerrain();
                 chunk->buildMesh();
             }
         }
@@ -81,7 +110,7 @@ void World::renderChunks()
         glm::vec2 position = chunk->getPosition();
         if (position.x <= currentPlayerChunk.x + renderDistance && position.x >= currentPlayerChunk.x - renderDistance && position.y <= currentPlayerChunk.y + renderDistance && position.y >= currentPlayerChunk.y - renderDistance)
         {
-            if (camera.isChunkInFrustum(position)) 
+            if (camera.isChunkInFrustum(position))
             {
                 chunk->render();
             }
@@ -91,7 +120,8 @@ void World::renderChunks()
 
 Chunk *World::addChunk(const glm::ivec2 &position)
 {
-    auto chunk = std::make_unique<Chunk>(position, this);
+
+    auto chunk = std::make_unique<Chunk>(position);
     Chunk *chunkPtr = chunk.get();
     world_Map.try_emplace(position, std::move(chunk));
     activeChunks.emplace_back(chunkPtr);
@@ -139,7 +169,7 @@ int World::shouldClose()
 
 //======================================================================================================================
 
-Chunk::Chunk(const glm::ivec2 &position, World *world) : position(position), world(world)
+Chunk::Chunk(const glm::ivec2 &position) : position(position)
 {
     beenModified = false;
     withinRenderDistance = true;
@@ -153,7 +183,10 @@ Chunk::~Chunk() // NO IDEA WHAT WILL HAPPEN IF buildMesh() hasnt been called bef
     glDeleteBuffers(1, &ebo);
 }
 
-//stupid Algoooo greedy meshing pls
+FastNoiseLite *Chunk::noise;
+World *Chunk::world;
+
+// stupid Algoooo greedy meshing pls
 void Chunk::buildMesh() // called when chunk loads for the first time and when reloaded
 {
     vertices.reserve(100);
@@ -278,16 +311,19 @@ void Chunk::render()
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 }
 
-void Chunk::setFlat()
+void Chunk::genTerrain()
 {
     for (uint8_t x = 0; x < CHUNK_SIZE; x++)
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; z++)
         {
-            blockdata[x][0][z] = 5;
-            blockdata[x][1][z] = 3;
-            blockdata[x][2][z] = 3;
-            blockdata[x][3][z] = 1;
+            float height = noise->GetNoise(static_cast<float>(x + (16 * position.x)), static_cast<float>(z + (16 * position.y)));
+            int terrainHeight = static_cast<int>((height + 1.0f) * 20.0f); // Convert to int range 0-20
+
+            for (uint8_t y = 0; y <= terrainHeight; y++)
+            {
+                blockdata[x][y][z] = (y == terrainHeight) ? 1 : 3; // Surface = Grass, below = Dirt
+            }
         }
     }
 }
