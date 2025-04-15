@@ -62,10 +62,13 @@ class World
 {
 private:
     Window window;
-    Shader shader;
+    Shader shader3D;
+    Shader shader2D;
     Texture atlas;
     Camera camera;
     FastNoiseLite noise;
+
+    unsigned int crosshairVAO, crosshairVBO;
 
     std::unordered_map<glm::ivec2, std::unique_ptr<Chunk>> world_Map;
     std::vector<Chunk *> activeChunks;
@@ -78,6 +81,8 @@ private:
 
     void updateChunks(glm::ivec2 offset);
     void renderChunks();
+    void cookCrosshair();
+    void slapCrosshair();
 
 public:
     Chunk *getChunk(const glm::ivec2 &position) const;

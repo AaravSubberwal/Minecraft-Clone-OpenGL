@@ -1,8 +1,8 @@
 #include "Minecraft.h"
 
 World::World()
-    : window(), camera(window, 10), shader("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
-      atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png")
+    : window(), camera(window, 10), shader3D("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+      atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), shader2D("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dVertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dFragmentShader.glsl")
 {
     glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
     glfwSetWindowUserPointer(window.p_GLFWwindow(), &camera);
@@ -24,10 +24,11 @@ World::World()
 
     glm::mat4 model = glm::mat4(1.0f);
 
-    shader.setUniformMatrix4fv("u_model", model);
-    shader.setUniformMatrix4fv("u_projection", projection);
-    shader.setUniform1i("u_atlas", 0);
-    shader.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
+    shader3D.bind();
+    shader3D.setUniformMatrix4fv("u_model", model);
+    shader3D.setUniformMatrix4fv("u_projection", projection);
+    shader3D.setUniform1i("u_atlas", 0);
+    shader3D.setUniform3f("u_grassTint", 0.5f, 0.8f, 0.4f);
 
     renderDistance = camera.getRenderDistance();
     frames = 0;
@@ -38,13 +39,12 @@ World::World()
     int randomSeed = rng();
 
     noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    noise.SetFractalType(FastNoiseLite::FractalType_FBm); // Enable fractal noise
-    noise.SetFractalOctaves(5);    // Number of layers (higher = more detail)
-    noise.SetFractalLacunarity(2.0f); // Controls frequency change per octave
-    noise.SetFractalGain(0.5f);    // Controls amplitude reduction per octave
-    noise.SetFrequency(0.005f);     // Base frequency
+    noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    noise.SetFractalOctaves(5);
+    noise.SetFractalLacunarity(2.0f);
+    noise.SetFractalGain(0.5f);
+    noise.SetFrequency(0.005f);
     noise.SetSeed(randomSeed);
-
 
     Chunk::world = this;
     Chunk::noise = &noise;
@@ -62,6 +62,7 @@ World::World()
             chunk->buildMesh();
         }
     }
+    cookCrosshair();
 }
 
 void World::render()
@@ -70,7 +71,7 @@ void World::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     camera.processKeyboardInput(window.p_GLFWwindow());
-    shader.setUniformMatrix4fv("u_view", camera.view);
+    shader3D.setUniformMatrix4fv("u_view", camera.view);
 
     glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
     glm::ivec2 newChunkOffset = camera.getNewChunkOffset();
@@ -79,6 +80,7 @@ void World::render()
         updateChunks(currentPlayerChunk);
     renderChunks();
 
+    slapCrosshair();
     glfwSwapBuffers(window.p_GLFWwindow());
     glfwPollEvents();
 }
@@ -167,6 +169,42 @@ int World::shouldClose()
     return glfwWindowShouldClose(window.p_GLFWwindow());
 }
 
+void World::cookCrosshair()
+{
+    float crosshairLines[] = {
+        // horizontal line (x from -0.02 to +0.02, y = 0)
+        -0.015f, 0.0f,
+        0.015f, 0.0f,
+        // vertical line (x = 0, y from -0.02 to +0.02)
+        0.0f, -0.02f,
+        0.0f, 0.02f};
+    glGenVertexArrays(1, &crosshairVAO);
+    glGenBuffers(1, &crosshairVBO);
+
+    glBindVertexArray(crosshairVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, crosshairVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(crosshairLines), crosshairLines, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+    glLineWidth(2.0f); // or higher
+
+    glBindVertexArray(0);
+}
+
+void World::slapCrosshair()
+{
+    if(camera.showCrosshair == false) return;
+    shader2D.bind();
+    glBindVertexArray(crosshairVAO);
+
+    glDisable(GL_DEPTH_TEST); // draw on top
+
+    glDrawArrays(GL_LINES, 0, 4);
+
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+}
 //======================================================================================================================
 
 Chunk::Chunk(const glm::ivec2 &position) : position(position)
@@ -338,7 +376,6 @@ const std::unordered_map<uint8_t, std::array<uint8_t, 6>> blockTextures = {
 };
 // right, left, top, bottom, front, back
 
-// Lookup function to get the texture atlas index for a given block and face.
 uint8_t faceTexIndexLookup(uint8_t blockID, int face)
 {
     auto it = blockTextures.find(blockID);

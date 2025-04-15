@@ -54,4 +54,5 @@ public:
     
     bool isChunkInFrustum(const glm::ivec2 &position);
     bool didPlayerChunkChange;
+    bool showCrosshair;
 };

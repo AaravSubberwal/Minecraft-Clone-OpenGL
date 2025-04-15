@@ -3,7 +3,7 @@
 Camera::Camera(Window &window, uint8_t render_Distance) : cameraPos(glm::vec3(0.0f, 5.0f, 0.0f)),
                                                           cameraFront(glm::vec3(0.0f, 0.0f, -1.0f)), render_Distance(render_Distance),
                                                           cameraUp(glm::vec3(0.0f, 1.0f, 0.0f)), window(window),
-                                                          yaw(-90.0f),
+                                                          yaw(-90.0f), showCrosshair(true),
                                                           pitch(0.0f), didPlayerChunkChange(false),
                                                           lastX(window.getWidth() / 2.0f),
                                                           lastY(window.getHeight() / 2.0f),
