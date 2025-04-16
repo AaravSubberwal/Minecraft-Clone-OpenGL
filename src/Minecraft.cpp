@@ -1,8 +1,8 @@
 #include "Minecraft.h"
 
 World::World()
-    : window(), camera(window, 10), shader3D("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
-      atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png"), shader2D("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dVertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dFragmentShader.glsl")
+    : window(), camera(window, 10), ui(), shader3D("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/vertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/fragmentShader.glsl"),
+      atlas("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/terrain.png")
 {
     glfwSetCursorPosCallback(window.p_GLFWwindow(), Camera::mouse_callback);
     glfwSetWindowUserPointer(window.p_GLFWwindow(), &camera);
@@ -62,7 +62,6 @@ World::World()
             chunk->buildMesh();
         }
     }
-    cookCrosshair();
 }
 
 void World::render()
@@ -80,7 +79,7 @@ void World::render()
         updateChunks(currentPlayerChunk);
     renderChunks();
 
-    slapCrosshair();
+    ui.slapUI();
     glfwSwapBuffers(window.p_GLFWwindow());
     glfwPollEvents();
 }
@@ -169,42 +168,6 @@ int World::shouldClose()
     return glfwWindowShouldClose(window.p_GLFWwindow());
 }
 
-void World::cookCrosshair()
-{
-    float crosshairLines[] = {
-        // horizontal line (x from -0.02 to +0.02, y = 0)
-        -0.015f, 0.0f,
-        0.015f, 0.0f,
-        // vertical line (x = 0, y from -0.02 to +0.02)
-        0.0f, -0.02f,
-        0.0f, 0.02f};
-    glGenVertexArrays(1, &crosshairVAO);
-    glGenBuffers(1, &crosshairVBO);
-
-    glBindVertexArray(crosshairVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, crosshairVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(crosshairLines), crosshairLines, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glLineWidth(2.0f); // or higher
-
-    glBindVertexArray(0);
-}
-
-void World::slapCrosshair()
-{
-    if(camera.showCrosshair == false) return;
-    shader2D.bind();
-    glBindVertexArray(crosshairVAO);
-
-    glDisable(GL_DEPTH_TEST); // draw on top
-
-    glDrawArrays(GL_LINES, 0, 4);
-
-    glEnable(GL_DEPTH_TEST);
-    glBindVertexArray(0);
-}
 //======================================================================================================================
 
 Chunk::Chunk(const glm::ivec2 &position) : position(position)
@@ -400,3 +363,45 @@ const glm::ivec3 faceVertices[6][4] = {
     // Back (-Z)
     {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};
 // bottom-left, bottom-right, top-right, top-left
+
+
+UI::~UI() {
+    glDeleteVertexArrays(1, &crosshairVAO);
+    glDeleteBuffers(1, &crosshairVBO);
+}
+
+UI::UI():shader2D("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dVertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dFragmentShader.glsl")
+{
+    float crosshairLines[] = {
+        // horizontal line (x from -0.02 to +0.02, y = 0)
+        -0.015f, 0.0f,
+        0.015f, 0.0f,
+        // vertical line (x = 0, y from -0.02 to +0.02)
+        0.0f, -0.02f,
+        0.0f, 0.02f};
+    glGenVertexArrays(1, &crosshairVAO);
+    glGenBuffers(1, &crosshairVBO);
+    
+    glBindVertexArray(crosshairVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, crosshairVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(crosshairLines), crosshairLines, GL_STATIC_DRAW);
+    
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+    glLineWidth(2.0f); // or higher
+    
+    glBindVertexArray(0);
+}
+
+void UI::slapUI()
+{
+    shader2D.bind();
+    glBindVertexArray(crosshairVAO);
+
+    glDisable(GL_DEPTH_TEST); // draw on top
+
+    glDrawArrays(GL_LINES, 0, 4);
+
+    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+}

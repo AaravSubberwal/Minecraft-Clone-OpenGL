@@ -23,6 +23,7 @@
 
 class World;
 class Chunk;
+class UI;
 
 class Chunk
 {
@@ -45,17 +46,29 @@ public:
 
     static World *world;
     static FastNoiseLite *noise;
-    
+
     bool withinRenderDistance;
     bool beenModified;
-
+    
     Chunk(const Chunk &) = delete; // disable copying
     Chunk &operator=(const Chunk &) = delete;
-
+    
     inline const glm::ivec2 getPosition() { return position; }
     void buildMesh();
     void genTerrain();
     void render();
+};
+
+class UI
+{
+private:
+    unsigned int crosshairVAO, crosshairVBO;
+    Shader shader2D;
+public:
+    UI();
+    ~UI();
+    
+    void slapUI();
 };
 
 class World
@@ -63,12 +76,10 @@ class World
 private:
     Window window;
     Shader shader3D;
-    Shader shader2D;
     Texture atlas;
     Camera camera;
+    UI ui;
     FastNoiseLite noise;
-
-    unsigned int crosshairVAO, crosshairVBO;
 
     std::unordered_map<glm::ivec2, std::unique_ptr<Chunk>> world_Map;
     std::vector<Chunk *> activeChunks;
@@ -81,8 +92,6 @@ private:
 
     void updateChunks(glm::ivec2 offset);
     void renderChunks();
-    void cookCrosshair();
-    void slapCrosshair();
 
 public:
     Chunk *getChunk(const glm::ivec2 &position) const;
