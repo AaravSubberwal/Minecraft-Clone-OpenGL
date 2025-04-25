@@ -13,6 +13,7 @@
 #include "Camera.h"
 #include "Window.h"
 #include "FastNoiseLite.h"
+#include "UI.h"
 
 #define RIGHT 0
 #define LEFT 1
@@ -23,7 +24,6 @@
 
 class World;
 class Chunk;
-class UI;
 
 class Chunk
 {
@@ -49,26 +49,14 @@ public:
 
     bool withinRenderDistance;
     bool beenModified;
-    
+
     Chunk(const Chunk &) = delete; // disable copying
     Chunk &operator=(const Chunk &) = delete;
-    
+
     inline const glm::ivec2 getPosition() { return position; }
     void buildMesh();
     void genTerrain();
     void render();
-};
-
-class UI
-{
-private:
-    unsigned int crosshairVAO, crosshairVBO;
-    Shader shader2D;
-public:
-    UI();
-    ~UI();
-    
-    void slapUI();
 };
 
 class World

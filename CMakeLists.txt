@@ -21,6 +21,7 @@ set(SOURCES
     src/textures.cpp
     src/Camera.cpp
     src/Window.cpp
+    src/UI.cpp
     src/vendor/stb_image.cpp
     src/vendor/glad.c
 )

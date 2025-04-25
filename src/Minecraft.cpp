@@ -50,6 +50,7 @@ World::World()
     Chunk::noise = &noise;
 
     glm::ivec2 currentPlayerChunk = camera.getPlayerChunk();
+// make chunks around moore neibhourhood
     for (int x = currentPlayerChunk.x - renderDistance; x <= currentPlayerChunk.x + renderDistance; x++)
     {
         for (int y = currentPlayerChunk.y - renderDistance; y <= currentPlayerChunk.y + renderDistance; y++)
@@ -66,7 +67,7 @@ World::World()
 
 void World::render()
 {
-    glClearColor(127.0f / 255.0f, 178.0f / 255.0f, 255.0f / 255.0f, 1.0f); // skyyy
+    glClearColor(127.2f / 255.0f, 178.0f / 255.0f, 255.0f / 255.0f, 1.0f); // sky color rn. needs to change dynamically with time
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     camera.processKeyboardInput(window.p_GLFWwindow());
@@ -364,44 +365,3 @@ const glm::ivec3 faceVertices[6][4] = {
     {{1, 0, 0}, {0, 0, 0}, {0, 1, 0}, {1, 1, 0}}};
 // bottom-left, bottom-right, top-right, top-left
 
-
-UI::~UI() {
-    glDeleteVertexArrays(1, &crosshairVAO);
-    glDeleteBuffers(1, &crosshairVBO);
-}
-
-UI::UI():shader2D("C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dVertexShader.glsl", "C:/Users/Aarav/Desktop/Projects/Minecraft-Clone-OpenGL/res/2dFragmentShader.glsl")
-{
-    float crosshairLines[] = {
-        // horizontal line (x from -0.02 to +0.02, y = 0)
-        -0.015f, 0.0f,
-        0.015f, 0.0f,
-        // vertical line (x = 0, y from -0.02 to +0.02)
-        0.0f, -0.02f,
-        0.0f, 0.02f};
-    glGenVertexArrays(1, &crosshairVAO);
-    glGenBuffers(1, &crosshairVBO);
-    
-    glBindVertexArray(crosshairVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, crosshairVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(crosshairLines), crosshairLines, GL_STATIC_DRAW);
-    
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
-    glEnableVertexAttribArray(0);
-    glLineWidth(2.0f); // or higher
-    
-    glBindVertexArray(0);
-}
-
-void UI::slapUI()
-{
-    shader2D.bind();
-    glBindVertexArray(crosshairVAO);
-
-    glDisable(GL_DEPTH_TEST); // draw on top
-
-    glDrawArrays(GL_LINES, 0, 4);
-
-    glEnable(GL_DEPTH_TEST);
-    glBindVertexArray(0);
-}
